@@ -64,9 +64,10 @@ export function Layout() {
     );
   };
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change + scroll to top
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "instant" });
   }, [location.pathname]);
 
   // Auto-expand group if a child is active
