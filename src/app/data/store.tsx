@@ -30,6 +30,7 @@ interface AppStore {
   activityLogs: ActivityLog[];
   activeCampaignId: string | null;
   savedAudiences: SavedAudience[];
+  isAuthenticated: boolean;
 
   // Derived helpers
   getClient: (id: string) => Client | undefined;
@@ -48,6 +49,10 @@ interface AppStore {
 
   // Active campaign
   setActiveCampaignId: (id: string | null) => void;
+
+  // Auth
+  login: (email: string, pass: string) => boolean;
+  logout: () => void;
 
   // Logs
   addLog: (action: string, target: string) => void;
@@ -95,6 +100,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     SavedSitelinkSet[]
   >([]);
   const [savedCreatives, setSavedCreatives] = useState<SavedCreative[]>([]);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // ── Boot: load from Supabase ──────────
   useEffect(() => {
@@ -140,6 +146,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setLoaded(true);
       }
     }
+    const isAuth = localStorage.getItem("ims_auth") === "true";
+    setIsAuthenticated(isAuth);
+    
     loadData();
   }, []);
 
@@ -322,6 +331,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // ─── Auth ───────────────────────────────────────────────────────────────────
+
+  const login = useCallback((email: string, pass: string) => {
+    if (email === "jose@foxideias.com.br" && pass === "123456") {
+      setIsAuthenticated(true);
+      localStorage.setItem("ims_auth", "true");
+      return true;
+    }
+    return false;
+  }, []);
+
+  const logout = useCallback(() => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("ims_auth");
+  }, []);
+
   // ─── Audience library ────────────────────────────────────────────────────────
 
   const saveAudience = useCallback(
@@ -435,6 +460,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         savedCreatives,
         saveCreative,
         deleteSavedCreative,
+        isAuthenticated,
+        login,
+        logout,
       }}
     >
       {children}

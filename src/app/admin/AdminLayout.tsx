@@ -168,6 +168,7 @@ function GlobalSearch() {
 // ─── Main Layout ──────────────────────────────────────────────────────────────
 
 export function AdminLayout() {
+  const { logout } = useStore();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -235,13 +236,13 @@ export function AdminLayout() {
 
       {/* Logout */}
       <div className="p-4 border-t border-slate-800">
-        <Link
-          to="/"
-          className="flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
+        <button
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
         >
           <LogOut className="w-5 h-5" />
-          <span className="text-sm font-semibold">Sair para Apresentação</span>
-        </Link>
+          <span className="text-sm font-semibold text-left">Sair do Sistema</span>
+        </button>
       </div>
     </>
   );

@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Button } from "./ui/button";
+import { useStore } from "../data/store";
+import { LogOut } from "lucide-react";
 
 interface NavItem {
   path?: string;
@@ -42,6 +44,7 @@ const navItems: NavItem[] = [
 ];
 
 export function Layout() {
+  const { logout } = useStore();
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -190,13 +193,23 @@ export function Layout() {
           <span className="text-xs text-gray-500">Estratégia Ativa</span>
         </div>
         
-        <Link 
-          to="/admin" 
-          className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
-          Acesso Restrito Admin
-        </Link>
+        <div className="flex flex-col gap-2 mt-3">
+          <Link 
+            to="/admin" 
+            className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
+            Acesso Restrito Admin
+          </Link>
+
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
+          >
+            <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
+            Encerrar Sessão
+          </button>
+        </div>
       </div>
     </>
   );
