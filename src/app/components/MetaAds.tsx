@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Globe } from "lucide-react";
 import { FunnelSidebar } from "./FunnelSidebar";
@@ -83,8 +84,9 @@ function EmptyState({ step }: { step: FunnelStep }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function MetaAds() {
-  const { getActiveCampaign, getClient, updateCampaign } = useStore();
-  const campaign = getActiveCampaign();
+  const { campaignId } = useParams();
+  const { getActiveCampaign, getCampaign, getClient, updateCampaign } = useStore();
+  const campaign = campaignId ? getCampaign(campaignId) : getActiveCampaign();
   const client = campaign ? getClient(campaign.clientId) : undefined;
   const companyName = client?.company;
   const companyUrl = client?.website;
@@ -199,8 +201,8 @@ export function MetaAds() {
                 className="space-y-6"
               >
                 {/* Stage header */}
-                <div className="bg-white rounded-xl border border-gray-100 px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
+                  <div className="flex items-center gap-3 px-6 py-4">
                     <div className={`w-2 h-8 rounded-full ${colors.accent}`} />
                     <div>
                       <p className="text-gray-900 font-semibold">{tagline}</p>
@@ -307,6 +309,7 @@ export function MetaAds() {
         companyName={companyName}
         companyUrl={companyUrl}
         companyLogo={companyLogo}
+        readOnly={!!campaignId}
       />
     </div>
   );

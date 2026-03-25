@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation } from "react-router";
+import { Outlet, Link, useLocation, useParams } from "react-router";
 import { BarChart2, TrendingUp, Globe, ChevronRight, ShieldCheck, LayoutDashboard, Megaphone, ChevronDown, Menu } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
@@ -44,8 +44,16 @@ const navItems: NavItem[] = [
 ];
 
 export function Layout() {
+  const { campaignId } = useParams();
   const { logout } = useStore();
   const location = useLocation();
+  
+  const getNavPath = (path?: string) => {
+    if (!path) return undefined;
+    if (!campaignId) return path;
+    const base = path === "/" ? "" : path;
+    return `/share/${campaignId}${base}`;
+  };
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>(["Campanha"]);
@@ -133,7 +141,7 @@ export function Layout() {
                           return (
                             <Link
                               key={child.path}
-                              to={child.path!}
+                              to={getNavPath(child.path)!}
                               className={`
                                 flex items-center gap-3 px-3 py-2 rounded-lg transition-all group
                                 ${isChildActive
@@ -160,7 +168,7 @@ export function Layout() {
           return (
             <Link
               key={item.path}
-              to={item.path!}
+              to={getNavPath(item.path)!}
               className={`
                 flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group
                 ${isActive
@@ -194,21 +202,25 @@ export function Layout() {
         </div>
         
         <div className="flex flex-col gap-2 mt-3">
-          <Link 
-            to="/admin" 
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
-            Acesso Restrito Admin
-          </Link>
+          {!campaignId && (
+            <Link 
+              to="/admin" 
+              className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
+              Acesso Restrito Admin
+            </Link>
+          )}
 
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
-          >
-            <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
-            Encerrar Sessão
-          </button>
+          {!campaignId && (
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
+            >
+              <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
+              Encerrar Sessão
+            </button>
+          )}
         </div>
       </div>
     </>

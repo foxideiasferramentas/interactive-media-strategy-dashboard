@@ -39,14 +39,14 @@ const statusMap = {
     color: "text-amber-500",
     bg: "bg-amber-50",
     label: "Pausada",
-    border: "border-amber-100",
+    border: "border-amber-200",
   },
   planning: {
     icon: Clock,
     color: "text-slate-400",
     bg: "bg-slate-50",
     label: "Planejamento",
-    border: "border-slate-100",
+    border: "border-slate-200",
   },
 };
 
@@ -109,7 +109,7 @@ function ClientSelect({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 appearance-none cursor-pointer ${
-            error ? "border-red-300" : "border-slate-100"
+            error ? "border-red-300" : "border-slate-200"
           }`}
         >
           {clients.map((c) => (
@@ -160,7 +160,7 @@ function BudgetAndDates({
           min={0}
           onChange={(e) => setBudget(e.target.value)}
           className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 ${ring} ${
-            errors.budget ? "border-red-300" : "border-slate-100"
+            errors.budget ? "border-red-300" : "border-slate-200"
           }`}
         />
         {errors.budget && (
@@ -178,7 +178,7 @@ function BudgetAndDates({
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
             className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 ${ring} ${
-              errors.startDate ? "border-red-300" : "border-slate-100"
+              errors.startDate ? "border-red-300" : "border-slate-200"
             }`}
           />
           {errors.startDate && (
@@ -193,7 +193,7 @@ function BudgetAndDates({
             type="date"
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
-            className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 ${ring}`}
+            className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 ${ring}`}
           />
         </div>
       </div>
@@ -309,7 +309,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
       >
         {/* ── Mode: choose ────────────────────────────────────────────────── */}
         {mode === "choose" && (
@@ -389,7 +389,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
                   placeholder="Ex: Lançamento Produto Q2"
                   onChange={(e) => setName(e.target.value)}
                   className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 ${
-                    errors.name ? "border-red-300" : "border-slate-100"
+                    errors.name ? "border-red-300" : "border-slate-200"
                   }`}
                 />
                 {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
@@ -414,7 +414,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
                       className={`flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
                         status === s
                           ? `${statusMap[s].bg} ${statusMap[s].color} ${statusMap[s].border}`
-                          : "border-slate-100 text-slate-400 hover:bg-slate-50"
+                          : "border-slate-200 text-slate-400 hover:bg-slate-50"
                       }`}
                     >
                       {statusMap[s].label}
@@ -487,7 +487,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
                   onChange={(e) => setInstructions(e.target.value)}
                   placeholder="Ex: Focar em conversão para leads qualificados. Evitar público abaixo de 30 anos. Tom de voz mais corporativo. Priorizar Google Search sobre Display..."
                   rows={4}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/10 focus:border-violet-500 resize-none leading-relaxed"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/10 focus:border-violet-500 resize-none leading-relaxed"
                 />
               </div>
             </div>
@@ -597,7 +597,7 @@ function DeleteModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 p-8"
+        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 p-8"
       >
         <div className="flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
@@ -715,7 +715,7 @@ export function CampaignManagement() {
       </div>
 
       {/* Search + Filter */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm flex flex-col md:flex-row gap-4">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row gap-4">
         <div className="relative flex-1 group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input
@@ -723,7 +723,7 @@ export function CampaignManagement() {
             placeholder="Buscar por nome da campanha ou cliente..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
           />
         </div>
 
@@ -731,7 +731,7 @@ export function CampaignManagement() {
         <div className="relative">
           <button
             onClick={() => setShowFilterMenu((v) => !v)}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-100 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors min-w-[160px] justify-between"
+            className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors min-w-[160px] justify-between"
           >
             <span>{filterLabels[statusFilter]}</span>
             <ChevronDown
@@ -744,7 +744,7 @@ export function CampaignManagement() {
                 initial={{ opacity: 0, y: 6, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-100 rounded-2xl shadow-xl z-20 overflow-hidden p-1"
+                className="absolute right-0 top-full mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-xl z-20 overflow-hidden p-1"
               >
                 {(
                   ["all", "active", "paused", "planning"] as StatusFilter[]
@@ -781,7 +781,7 @@ export function CampaignManagement() {
               initial={{ opacity: 0, x: -12 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group"
+              className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group"
             >
               <div className="flex flex-col lg:flex-row lg:items-center gap-6">
                 {/* Status & Name */}

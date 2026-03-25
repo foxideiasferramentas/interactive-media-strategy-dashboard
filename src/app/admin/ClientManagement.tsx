@@ -319,7 +319,9 @@ export function ClientManagement() {
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-4 shadow-sm">
+      <div
+        className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center"
+      >
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
           <input
@@ -327,7 +329,7 @@ export function ClientManagement() {
             placeholder="Buscar por nome ou empresa..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
+            className="w-full pl-10 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 transition-all"
           />
         </div>
       </div>
@@ -340,7 +342,7 @@ export function ClientManagement() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.05 }}
-            className="bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md transition-all group overflow-hidden"
+            className="bg-white border-2 border-slate-200 rounded-2xl p-6 focus-within:border-blue-500 transition-all text-center group relative overflow-hidden"
           >
             <div className="h-2 w-full" style={{ backgroundColor: client.color }} />
             <div className="p-6">
@@ -395,7 +397,7 @@ export function ClientManagement() {
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 text-center">
+                <div className="bg-slate-100 border border-slate-200 rounded-xl p-3 text-center">
                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-0.5">
                     Campanhas
                   </p>

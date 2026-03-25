@@ -20,6 +20,7 @@ import type {
   GoogleCreative,
 } from "./types";
 import { supabase } from "./supabase";
+import { toast } from "sonner";
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
@@ -214,7 +215,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addLog("cadastrou o cliente", client.name);
 
       supabase.from("ims_clients").insert(client).then(({ error }) => {
-        if (error) console.error("Error adding client", error);
+        if (error) {
+          console.error("Error adding client", error);
+          toast.error("Erro ao salvar cliente no banco de dados.");
+        } else {
+          toast.success("Cliente cadastrado com sucesso!");
+        }
       });
     },
     [addLog]
@@ -226,7 +232,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addLog("editou o cliente", client.name);
 
       supabase.from("ims_clients").update(client).eq("id", client.id).then(({ error }) => {
-        if (error) console.error("Error updating client", error);
+        if (error) {
+          console.error("Error updating client", error);
+          toast.error("Erro ao atualizar cliente.");
+        } else {
+          toast.success("Dados do cliente atualizados!");
+        }
       });
     },
     [addLog]
@@ -241,7 +252,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
 
       supabase.from("ims_clients").delete().eq("id", id).then(({ error }) => {
-        if (error) console.error("Error deleting client", error);
+        if (error) {
+          console.error("Error deleting client", error);
+          toast.error("Não foi possível excluir o cliente.");
+        } else {
+          toast.success("Cliente removido do sistema.");
+        }
       });
     },
     [addLog]
@@ -287,7 +303,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addLog("atualizou a campanha", campaign.name);
 
       supabase.from("ims_campaigns").update(campaign).eq("id", campaign.id).then(({ error }) => {
-        if (error) console.error("Error updating campaign", error);
+        if (error) {
+          console.error("Error updating campaign", error);
+          toast.error("Falha ao salvar alterações da campanha.");
+        } else {
+          toast.success("Estratégia salva com sucesso!");
+        }
       });
     },
     [addLog]
@@ -315,7 +336,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCampaigns((prev) => prev.filter((c) => c.id !== id));
 
       supabase.from("ims_campaigns").delete().eq("id", id).then(({ error }) => {
-        if (error) console.error("Error deleting campaign", error);
+        if (error) {
+          console.error("Error deleting campaign", error);
+          toast.error("Erro ao excluir campanha.");
+        } else {
+          toast.success("Campanha excluída permanentemente.");
+        }
       });
     },
     [addLog, campaigns, clients]

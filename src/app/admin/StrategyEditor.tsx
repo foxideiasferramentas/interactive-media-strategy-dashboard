@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   ChevronRight,
+  ChevronDown,
+  LayoutDashboard,
   Layers,
   Share2,
   Globe,
@@ -32,6 +34,7 @@ import {
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router";
 import { useStore } from "../data/store";
+import { toast } from "sonner";
 import { normalizeMediaUrl } from "../utils/media";
 import { StrategyFlow } from "../components/StrategyFlow";
 import { Field, MetaCreativeEditor, GoogleCreativeEditor } from "../components/CreativeEditors";
@@ -103,9 +106,9 @@ function LibraryPickerModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center bg-violet-100 text-violet-600`}>
               <Library className="w-4 h-4" />
@@ -128,7 +131,7 @@ function LibraryPickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar público em toda a biblioteca..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
               autoFocus
             />
           </div>
@@ -161,7 +164,7 @@ function LibraryPickerModal({
                   onPick(fresh as AnyAudience);
                   onClose();
                 }}
-                className="w-full flex items-start gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/50 transition-all text-left group"
+                className="w-full flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/50 transition-all text-left group"
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${saved.type === "meta" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
                   <Users className="w-3.5 h-3.5" />
@@ -226,9 +229,9 @@ function CreativePickerModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+        className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${channel === "meta" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
               <Library className="w-4 h-4" />
@@ -251,7 +254,7 @@ function CreativePickerModal({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Buscar criativo..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500"
               autoFocus
             />
           </div>
@@ -275,7 +278,7 @@ function CreativePickerModal({
                   onPick({ ...saved.creative, id: `cr-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` });
                   onClose();
                 }}
-                className="w-full flex items-start gap-3 p-4 rounded-xl border border-slate-100 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-left group"
+                className="w-full flex items-start gap-3 p-4 rounded-xl border border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50/50 transition-all text-left group"
               >
                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 ${channel === "meta" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
                   <BookmarkCheck className="w-3.5 h-3.5" />
@@ -329,9 +332,9 @@ function MoveCreativeModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
       >
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${channel === "meta" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
               <ArrowUpDown className="w-4 h-4" />
@@ -362,7 +365,7 @@ function MoveCreativeModal({
                     <button
                       key={aud.id}
                       onClick={() => { onMove(stage, aud.id); onClose(); }}
-                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/50 transition-all text-left group"
+                      className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/50 transition-all text-left group"
                     >
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${channel === "meta" ? "bg-blue-100 text-blue-600" : "bg-emerald-100 text-emerald-600"}`}>
                         <Users className="w-3 h-3" />
@@ -411,8 +414,9 @@ function AudienceEditor<T extends AnyAudience>({
   onMoveCreative?: (creativeIndex: number, targetStage: StageKey, targetAudienceId: string) => void;
 }) {
   const { saveCreative, savedCreatives } = useStore();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [justSaved, setJustSaved] = useState(false);
+  const [showFullDetails, setShowFullDetails] = useState(true);
   const [showCreativeLibrary, setShowCreativeLibrary] = useState(false);
   const [movingCreativeIndex, setMovingCreativeIndex] = useState<number | null>(null);
 
@@ -533,27 +537,10 @@ function AudienceEditor<T extends AnyAudience>({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="border-t border-slate-100">
+            <div className="border-t border-slate-200">
               {/* ── Seção: informações do público ─────────────────── */}
               <div className="px-5 pt-4 pb-5 space-y-4 bg-white">
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest mb-2">Estágio do Funil</p>
-                  <div className="flex bg-slate-100 p-1 rounded-xl w-fit gap-0.5">
-                    {(["top", "middle", "bottom"] as StageKey[]).map((s) => (
-                      <button
-                        key={s}
-                        onClick={() => onMoveStage(s)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                          currentStage === s
-                            ? "bg-white text-slate-800 shadow-sm"
-                            : "text-slate-400 hover:text-slate-600"
-                        }`}
-                      >
-                        {EDITOR_STAGE_LABELS[s]?.short}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <Field
                     label="Título do Público"
@@ -578,44 +565,66 @@ function AudienceEditor<T extends AnyAudience>({
                   multiline
                 />
 
-                <div className="pt-4 border-t border-slate-100 mt-2 space-y-4">
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Informações Estruturadas</p>
+                <div className="pt-4 border-t border-slate-200 mt-2">
+                  <button
+                    onClick={() => setShowFullDetails(!showFullDetails)}
+                    className="w-full flex items-center justify-between py-1 text-[10px] uppercase font-bold text-slate-400 tracking-widest hover:text-slate-600 transition-colors group"
+                  >
+                    <span>Informações Estruturadas</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] font-medium normal-case text-slate-400 group-hover:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {showFullDetails ? "Recolher" : "Expandir detalhes"}
+                      </span>
+                      <ChevronRight className={`w-3.5 h-3.5 transition-transform ${showFullDetails ? "rotate-90" : ""}`} />
+                    </div>
+                  </button>
                   
-                  <Field
-                    label="Sobre (Short Bio)"
-                    value={audience.about || ""}
-                    onChange={(v) => onChange({ ...audience, about: v } as T)}
-                    placeholder="Resumo rápido da persona..."
-                  />
+                  <AnimatePresence>
+                    {showFullDetails && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="space-y-4 pt-4 overflow-hidden"
+                      >
+                        <Field
+                          label="Sobre (Short Bio)"
+                          value={audience.about || ""}
+                          onChange={(v) => onChange({ ...audience, about: v } as T)}
+                          placeholder="Resumo rápido da persona..."
+                        />
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <Field
-                      label="Gênero"
-                      value={audience.gender || ""}
-                      onChange={(v) => onChange({ ...audience, gender: v } as T)}
-                      placeholder="Ex: Ambos / Masc / Fem"
-                    />
-                    <Field
-                      label="Idade"
-                      value={audience.ageRange || ""}
-                      onChange={(v) => onChange({ ...audience, ageRange: v } as T)}
-                      placeholder="Ex: 25-45 anos"
-                    />
-                  </div>
-                  
-                  <Field
-                    label="Interesses"
-                    value={audience.interests || ""}
-                    onChange={(v) => onChange({ ...audience, interests: v } as T)}
-                    placeholder="Ex: Tecnologia, Imóveis, Decoração"
-                  />
-                  
-                  <Field
-                    label="Palavras-chave"
-                    value={audience.keywords || ""}
-                    onChange={(v) => onChange({ ...audience, keywords: v } as T)}
-                    placeholder="Ex: comprar casa, financiar apto..."
-                  />
+                        <div className="grid grid-cols-2 gap-4">
+                          <Field
+                            label="Gênero"
+                            value={audience.gender || ""}
+                            onChange={(v) => onChange({ ...audience, gender: v } as T)}
+                            placeholder="Ex: Ambos / Masc / Fem"
+                          />
+                          <Field
+                            label="Idade"
+                            value={audience.ageRange || ""}
+                            onChange={(v) => onChange({ ...audience, ageRange: v } as T)}
+                            placeholder="Ex: 25-45 anos"
+                          />
+                        </div>
+                        
+                        <Field
+                          label="Interesses"
+                          value={audience.interests || ""}
+                          onChange={(v) => onChange({ ...audience, interests: v } as T)}
+                          placeholder="Ex: Tecnologia, Imóveis, Decoração"
+                        />
+                        
+                        <Field
+                          label="Palavras-chave"
+                          value={audience.keywords || ""}
+                          onChange={(v) => onChange({ ...audience, keywords: v } as T)}
+                          placeholder="Ex: comprar casa, financiar apto..."
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </div>
 
@@ -791,6 +800,43 @@ export function StrategyEditor() {
     }
   }, [originalCampaign, campaign]);
 
+  // ─── Explorer State ────────────────────────────────────────────────────────
+  const [selectedAudienceId, setSelectedAudienceId] = useState<string | null>(null);
+  const [selectedCreativeId, setSelectedCreativeId] = useState<string | null>(null);
+  const [expandedChannels, setExpandedChannels] = useState<Record<string, boolean>>({
+    meta: true,
+    google: true,
+  });
+
+  const toggleChannel = (channel: string) => {
+    setExpandedChannels((prev) => ({ ...prev, [channel]: !prev[channel] }));
+  };
+
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>({});
+  const [expandedAudiences, setExpandedAudiences] = useState<Record<string, boolean>>({});
+
+  const toggleStage = (stageId: string) => {
+    setExpandedStages((prev) => ({ ...prev, [stageId]: !prev[stageId] }));
+  };
+
+  const toggleAudienceExp = (audId: string) => {
+    setExpandedAudiences((prev) => ({ ...prev, [audId]: !prev[audId] }));
+  };
+
+  const handleSelectNav = (tab: Tab, audId: string | null = null, crId: string | null = null) => {
+    navigate(`/admin/campaigns/${id}/${tab}`);
+    setSelectedAudienceId(audId);
+    setSelectedCreativeId(crId);
+    if (audId) {
+      // Auto-expand stage if needed
+      const metaStage = STAGES.find(s => campaign?.meta[s].some(a => a.id === audId));
+      const googleStage = STAGES.find(s => campaign?.google[s].some(a => a.id === audId));
+      if (metaStage) setExpandedStages(prev => ({ ...prev, [`meta-${metaStage}`]: true }));
+      if (googleStage) setExpandedStages(prev => ({ ...prev, [`google-${googleStage}`]: true }));
+      setExpandedAudiences(prev => ({ ...prev, [audId]: true }));
+    }
+  };
+
   // Track unsaved changes
   useEffect(() => {
     if (campaign) {
@@ -881,6 +927,12 @@ export function StrategyEditor() {
     }, 600);
   };
 
+  const handleShare = () => {
+    const shareUrl = `${window.location.origin}/share/${id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Link público copiado para a área de transferência!");
+  };
+
   // ─── Progress counters ──────────────────────────────────────────────────────
 
   const STAGES: StageKey[] = ["top", "middle", "bottom"];
@@ -906,172 +958,350 @@ export function StrategyEditor() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
+  // ─── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="max-w-[1400px] mx-auto pb-20 px-4 md:px-0">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={() => navigate("/admin/campaigns")}
-            className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors flex-shrink-0"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-1">
-              <button
-                onClick={() => navigate("/admin/campaigns")}
-                className="hover:text-blue-600 transition-colors font-medium"
-              >
-                Campanhas
-              </button>
-              <ChevronRight className="w-3 h-3" />
-              <span className="text-slate-500 font-medium truncate max-w-[220px]">
-                {campaign.name}
-              </span>
-            </div>
-            {/* Title + status badge */}
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl text-slate-900" style={{ fontWeight: 700 }}>
-                {campaign.name}
-              </h1>
-              <span
-                className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border flex-shrink-0 ${
-                  campaign.status === "active"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                    : campaign.status === "paused"
-                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                    : "bg-slate-100 text-slate-500 border-slate-200"
-                }`}
-              >
-                {campaign.status === "active"
-                  ? "Ativo"
-                  : campaign.status === "paused"
-                  ? "Pausado"
-                  : "Planejamento"}
-              </span>
-            </div>
-            {client && (
-              <p className="text-xs text-slate-400 mt-0.5">{client.name}</p>
-            )}
+    <div className="flex h-screen overflow-hidden -m-8">
+      {/* ── Secondary Sidebar (Explorer) ────────────────────────────────────── */}
+      <aside className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col flex-shrink-0">
+        <div className="p-4 border-b border-slate-200 bg-white">
+          <div className="flex items-center gap-2.5 mb-4">
+            <button
+              onClick={() => navigate("/admin/campaigns")}
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-colors"
+              title="Voltar para Campanhas"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+            </button>
+            <h2 className="font-bold text-slate-900 text-sm truncate flex-1">Editor</h2>
+            <button
+              onClick={handleShare}
+              className="w-7 h-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-blue-600 hover:bg-blue-50 transition-colors"
+              title="Compartilhar com Cliente (Link Público)"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="space-y-1">
+            {[
+              { id: "funnel", label: "Visão Geral", icon: Layers },
+              { id: "visual", label: "Fluxo Estratégico", icon: GitGraph },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id && !selectedAudienceId;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleSelectNav(item.id as Tab)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    isActive
+                      ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                      : "text-slate-600 hover:bg-white hover:text-slate-900"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            updateCampaign(campaign);
-            setActiveCampaignId(campaign.id);
-            navigate("/");
-          }}
-          className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center gap-2"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Ver Apresentação
-        </button>
-
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 min-w-[160px] justify-center disabled:opacity-50 disabled:cursor-not-allowed ${
-            saved
-              ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
-              : isDirty
-              ? "bg-blue-600 text-white shadow-lg shadow-blue-200 hover:bg-blue-700 ring-2 ring-blue-400 ring-offset-2"
-              : "bg-white text-slate-500 border border-slate-200 hover:bg-slate-50 hover:text-slate-700"
-          }`}
-        >
-          {isSaving ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : saved ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {isSaving ? "Salvando..." : saved ? "Salvo!" : isDirty ? "Salvar Alterações ●" : "Salvar Alterações"}
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white p-1.5 rounded-2xl border border-slate-100 shadow-sm flex gap-1">
-        {tabs.map(({ id: tabId, label, icon: Icon }) => {
-          const isActive = activeTab === tabId;
-          const count =
-            tabId === "meta"
-              ? metaTotalCreatives
-              : tabId === "google"
-              ? googleTotalCreatives
-              : null;
-          const warn = count !== null && count === 0;
-          return (
+        <nav className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* Meta Ads Channel */}
+          <div>
             <button
-              key={tabId}
-              onClick={() => navigate(`/admin/campaigns/${id}/${tabId}`)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                  : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-              }`}
+              onClick={() => toggleChannel("meta")}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 group"
             >
-              <Icon className="w-4 h-4" />
-              {label}
-              {count !== null && (
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                    isActive
-                      ? "bg-white/20 text-white"
-                      : warn
-                      ? "bg-amber-100 text-amber-600"
-                      : "bg-blue-50 text-blue-600"
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
+              {expandedChannels.meta ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              Meta Ads
+              <span className="ml-auto bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded text-[9px] group-hover:bg-slate-300">
+                {metaTotalAudiences}
+              </span>
             </button>
-          );
-        })}
-      </div>
 
-      {/* Próximos Passos banner — visible until all creatives are added */}
-      {!hasCreatives && (
-        <div className="bg-white border border-blue-100 rounded-2xl px-5 py-4 flex flex-wrap items-center gap-3 shadow-sm">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex-shrink-0">
-            Próximos passos
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { label: "Funil & Budget", done: true, tab: "funnel" as Tab },
-              { label: "Adicionar Públicos", done: hasAudiences, tab: "meta" as Tab },
-              { label: "Criar Criativos", done: hasCreatives, tab: "meta" as Tab },
-            ].map((step, i) => (
-              <div key={i} className="flex items-center gap-2">
-                {i > 0 && <ChevronRight className="w-3 h-3 text-slate-300 flex-shrink-0" />}
+            {expandedChannels.meta && (
+              <div className="mt-1 space-y-0.5 ml-2 border-l-2 border-slate-200 pl-2">
                 <button
-                  onClick={() => navigate(`/admin/campaigns/${id}/${step.tab}`)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                    step.done
-                      ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
-                      : "bg-blue-50 text-blue-700 border border-blue-100 hover:bg-blue-100"
+                  onClick={() => handleSelectNav("meta")}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    activeTab === "meta" && !selectedAudienceId ? "bg-blue-50 text-blue-700" : "text-slate-500 hover:bg-white"
                   }`}
                 >
-                  {step.done ? (
-                    <CheckCircle2 className="w-3 h-3 flex-shrink-0" />
-                  ) : (
-                    <div className="w-3 h-3 rounded-full border-2 border-blue-400 flex-shrink-0" />
-                  )}
-                  {step.label}
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  Visão do Canal
+                </button>
+                {STAGES.map((stage) => {
+                  const stageId = `meta-${stage}`;
+                  const isStageExpanded = expandedStages[stageId];
+                  return (
+                    <div key={stage} className="space-y-0.5 pt-1">
+                      <button
+                        onClick={() => toggleStage(stageId)}
+                        className="w-full px-3 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:text-slate-600 transition-colors"
+                      >
+                        {isStageExpanded ? <ChevronDown className="w-2.5 h-2.5" /> : <ChevronRight className="w-2.5 h-2.5" />}
+                        <div className={`w-1 h-3 rounded-full ${EDITOR_STAGE_LABELS[stage].color} opacity-50`} />
+                        {EDITOR_STAGE_LABELS[stage].short}
+                        <span className="ml-auto opacity-50">{campaign.meta[stage].length}</span>
+                      </button>
+                      
+                      {isStageExpanded && (
+                        <div className="space-y-0.5 ml-2 border-l border-slate-100 pl-1">
+                          {campaign.meta[stage].map((aud) => {
+                            const isAudExpanded = expandedAudiences[aud.id];
+                            return (
+                              <div key={aud.id} className="space-y-0.5">
+                                <div className="flex items-center gap-0.5 group">
+                                  <button
+                                    onClick={() => toggleAudienceExp(aud.id)}
+                                    className="p-1 text-slate-300 hover:text-slate-600 transition-colors"
+                                  >
+                                    {isAudExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                  </button>
+                                  <button
+                                    onClick={() => handleSelectNav("meta", aud.id)}
+                                    className={`flex-1 flex items-center gap-2 px-1.5 py-1 rounded-lg text-xs font-medium truncate transition-all ${
+                                      selectedAudienceId === aud.id
+                                        ? "bg-blue-600 text-white shadow-sm"
+                                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                                    }`}
+                                  >
+                                    <span className="truncate">{aud.title || "Sem título"}</span>
+                                  </button>
+                                </div>
+                                
+                                {isAudExpanded && (
+                                  <div className="ml-4 space-y-0.5 border-l border-slate-50 pl-2">
+                                    {aud.creatives.length > 0 ? (
+                                      aud.creatives.map((cr) => (
+                                        <button
+                                          key={cr.id}
+                                          onClick={() => handleSelectNav("meta", aud.id, cr.id)}
+                                          className={`w-full flex items-center gap-2 px-2 py-1 text-[10px] font-medium transition-all rounded-lg ${
+                                            selectedCreativeId === cr.id
+                                              ? "text-blue-600 bg-blue-50/80"
+                                              : "text-slate-400 italic hover:text-blue-600 hover:bg-blue-50/50"
+                                          }`}
+                                        >
+                                          {cr.format === "Video" ? <Video className="w-2.5 h-2.5" /> : <ImageIcon className="w-2.5 h-2.5" />}
+                                          <span className="truncate">{cr.name || "Criativo sem nome"}</span>
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-2 py-0.5 text-[9px] text-slate-300 italic">Nenhum criativo</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  onClick={addMetaAudience}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-blue-600 hover:bg-blue-50 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Novo Público
                 </button>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
 
-      {/* Content */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm min-h-[600px] p-8">
-        <AnimatePresence mode="wait">
-          {/* ── FUNNEL TAB ──────────────────────────────────────────────────── */}
+          {/* Google Ads Channel */}
+          <div>
+            <button
+              onClick={() => toggleChannel("google")}
+              className="w-full flex items-center gap-2 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 group"
+            >
+              {expandedChannels.google ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+              Google Ads
+              <span className="ml-auto bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded text-[9px] group-hover:bg-slate-300">
+                {googleTotalAudiences}
+              </span>
+            </button>
+
+            {expandedChannels.google && (
+              <div className="mt-1 space-y-0.5 ml-2 border-l-2 border-slate-200 pl-2">
+                <button
+                  onClick={() => handleSelectNav("google")}
+                  className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    activeTab === "google" && !selectedAudienceId ? "bg-emerald-50 text-emerald-700" : "text-slate-500 hover:bg-white"
+                  }`}
+                >
+                  <LayoutDashboard className="w-3.5 h-3.5" />
+                  Visão do Canal
+                </button>
+                {STAGES.map((stage) => {
+                  const stageId = `google-${stage}`;
+                  const isStageExpanded = expandedStages[stageId];
+                  return (
+                    <div key={stage} className="space-y-0.5 pt-1">
+                      <button
+                        onClick={() => toggleStage(stageId)}
+                        className="w-full px-3 py-1 text-[9px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 hover:text-slate-600 transition-colors"
+                      >
+                        {isStageExpanded ? <ChevronDown className="w-2.5 h-2.5" /> : <ChevronRight className="w-2.5 h-2.5" />}
+                        <div className={`w-1 h-3 rounded-full ${EDITOR_STAGE_LABELS[stage].color} opacity-50`} />
+                        {EDITOR_STAGE_LABELS[stage].short}
+                        <span className="ml-auto opacity-50">{campaign.google[stage].length}</span>
+                      </button>
+                      
+                      {isStageExpanded && (
+                        <div className="space-y-0.5 ml-2 border-l border-slate-100 pl-1">
+                          {campaign.google[stage].map((aud) => {
+                            const isAudExpanded = expandedAudiences[aud.id];
+                            return (
+                              <div key={aud.id} className="space-y-0.5">
+                                <div className="flex items-center gap-0.5 group">
+                                  <button
+                                    onClick={() => toggleAudienceExp(aud.id)}
+                                    className="p-1 text-slate-300 hover:text-slate-600 transition-colors"
+                                  >
+                                    {isAudExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                                  </button>
+                                  <button
+                                    onClick={() => handleSelectNav("google", aud.id)}
+                                    className={`flex-1 flex items-center gap-2 px-1.5 py-1 rounded-lg text-xs font-medium truncate transition-all ${
+                                      selectedAudienceId === aud.id
+                                        ? "bg-emerald-600 text-white shadow-sm"
+                                        : "text-slate-500 hover:bg-white hover:text-slate-900"
+                                    }`}
+                                  >
+                                    <span className="truncate">{aud.title || "Sem título"}</span>
+                                  </button>
+                                </div>
+                                
+                                {isAudExpanded && (
+                                  <div className="ml-4 space-y-0.5 border-l border-slate-50 pl-2">
+                                    {aud.creatives.length > 0 ? (
+                                      aud.creatives.map((cr) => (
+                                        <button
+                                          key={cr.id}
+                                          onClick={() => handleSelectNav("google", aud.id, cr.id)}
+                                          className={`w-full flex items-center gap-2 px-2 py-1 text-[10px] font-medium transition-all rounded-lg ${
+                                            selectedCreativeId === cr.id
+                                              ? "text-emerald-600 bg-emerald-50/80"
+                                              : "text-slate-400 italic hover:text-emerald-600 hover:bg-emerald-50/50"
+                                          }`}
+                                        >
+                                          {cr.format === "Search" || cr.format === "Display" ? <SearchIcon className="w-2.5 h-2.5" /> : <Video className="w-2.5 h-2.5" />}
+                                          <span className="truncate">{cr.name || "Criativo sem nome"}</span>
+                                        </button>
+                                      ))
+                                    ) : (
+                                      <div className="px-2 py-0.5 text-[9px] text-slate-300 italic">Nenhum criativo</div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                <button
+                  onClick={addGoogleAudience}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-600 hover:bg-emerald-50 transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Novo Público
+                </button>
+              </div>
+            )}
+          </div>
+        </nav>
+
+        {/* Action Bar in Sidebar */}
+        <div className="p-4 bg-white border-t border-slate-200 space-y-2">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-sm ${
+              saved
+                ? "bg-emerald-600 text-white"
+                : isDirty
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            }`}
+          >
+            {isSaving ? (
+              <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5" />
+            )}
+            {isSaving ? "Salvando..." : saved ? "Salvo!" : "Salvar Estratégia"}
+          </button>
+
+          <button
+            onClick={() => {
+              updateCampaign(campaign);
+              setActiveCampaignId(campaign.id);
+              navigate("/");
+            }}
+            className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 border border-slate-200 transition-all flex items-center justify-center gap-2"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            Ver Apresentação
+          </button>
+        </div>
+      </aside>
+
+      {/* ── Main Content Area ────────────────────────────────────────────────── */}
+      <main className="flex-1 overflow-y-auto bg-white">
+        {/* Secondary Header (Local context) */}
+        <header className="h-16 border-b border-slate-200 px-8 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md z-10">
+          <div className="flex items-center gap-3">
+            <h1 className="text-sm font-bold text-slate-900 truncate">
+              {activeTab === "funnel"
+                ? "Dashboard & Funil"
+                : activeTab === "visual"
+                ? "Fluxo Estratégico"
+                : activeTab === "meta"
+                ? "Meta Ads"
+                : "Google Ads"}
+            </h1>
+            {selectedAudienceId && (
+              <>
+                <ChevronRight className="w-4 h-4 text-slate-300" />
+                <span className="text-sm font-medium text-slate-500">
+                  {[
+                    ...campaign.meta.top,
+                    ...campaign.meta.middle,
+                    ...campaign.meta.bottom,
+                    ...campaign.google.top,
+                    ...campaign.google.middle,
+                    ...campaign.google.bottom,
+                  ].find((a) => a.id === selectedAudienceId)?.title || "Público"}
+                </span>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                campaign.status === "active"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                  : "bg-slate-100 text-slate-500 border-slate-200"
+              }`}
+            >
+              {campaign.status === "active" ? "Ativo" : "Planejamento"}
+            </span>
+          </div>
+        </header>
+
+        <div className="p-8">
+          <AnimatePresence mode="wait">
+            {/* ── FUNNEL TAB ──────────────────────────────────────────────────── */}
           {activeTab === "funnel" && (
             <motion.div
               key="funnel"
@@ -1105,7 +1335,7 @@ export function StrategyEditor() {
                   ].map(({ key, label, icon: Icon, color }) => (
                     <div
                       key={key}
-                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl flex items-center gap-4"
+                      className="bg-slate-50 border border-slate-200 p-4 rounded-2xl flex items-center gap-4"
                     >
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}
@@ -1159,7 +1389,7 @@ export function StrategyEditor() {
                   ].map(({ key, label, icon: Icon, color }) => (
                     <div
                       key={key}
-                      className="bg-slate-50 border border-slate-100 p-4 rounded-2xl"
+                      className="bg-slate-50 border border-slate-200 p-4 rounded-2xl"
                     >
                       <div className="flex items-center gap-2 mb-2">
                         <Icon className={`w-3.5 h-3.5 ${color}`} />
@@ -1187,7 +1417,7 @@ export function StrategyEditor() {
                 </div>
 
                 {/* Budget */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
                   {/* Header row */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                   <div className="flex items-center gap-3">
@@ -1258,7 +1488,7 @@ export function StrategyEditor() {
                         className={`rounded-xl border px-4 py-3 flex items-center gap-3 transition-all ${
                           ch.enabled
                             ? "bg-white border-slate-200"
-                            : "bg-slate-50 border-slate-100 opacity-50"
+                            : "bg-slate-50 border-slate-200 opacity-50"
                         }`}
                       >
                         {/* Checkbox */}
@@ -1306,7 +1536,7 @@ export function StrategyEditor() {
 
                   {/* Percentage bar */}
                   {(metaEnabled || googleEnabled) && (
-                    <div className="mt-4 pt-4 border-t border-slate-100">
+                    <div className="mt-4 pt-4 border-t border-slate-200">
                       <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 gap-0.5">
                         {metaEnabled && campaign.budgetAllocation.metaPercent > 0 && (
                           <div
@@ -1335,7 +1565,7 @@ export function StrategyEditor() {
               </div>
 
               {/* Geolocation */}
-              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 space-y-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
                   <Globe className="w-4 h-4 text-blue-600" />
                   Geolocalização
@@ -1379,7 +1609,7 @@ export function StrategyEditor() {
                       return (
                         <div
                           key={stageKey}
-                          className="border border-slate-100 rounded-3xl p-8 bg-slate-50/30 hover:border-blue-200 transition-colors"
+                          className="border border-slate-200 rounded-3xl p-8 bg-slate-50/30 hover:border-blue-200 transition-colors"
                         >
                           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
                             <div className="flex flex-row md:flex-col items-center gap-2 md:gap-1.5 flex-shrink-0">
@@ -1507,110 +1737,241 @@ export function StrategyEditor() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              className="w-full"
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-100">
-                    <Share2 className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      Estratégia Meta Ads
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      Públicos e criativos segmentados por etapa do funil
-                    </p>
-                  </div>
-                </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                  {(["top", "middle", "bottom"] as StageKey[]).map((s) => {
-                    const count = campaign.meta[s].length;
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => setActiveStage(s)}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                          activeStage === s
-                            ? "bg-white text-blue-600 shadow-sm"
-                            : "text-slate-400 hover:text-slate-600"
-                        }`}
-                      >
-                        {EDITOR_STAGE_LABELS[s]?.short}
-                        <span
-                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                            activeStage === s
-                              ? count === 0
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-blue-100 text-blue-600"
-                              : count === 0
-                              ? "bg-amber-50 text-amber-400"
-                              : "bg-slate-200 text-slate-500"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {selectedAudienceId && selectedCreativeId ? (
+                // Focused Creative Editor
+                (() => {
+                  const stage = STAGES.find(s => campaign.meta[s].some(a => a.id === selectedAudienceId));
+                  const audIndex = stage ? campaign.meta[stage].findIndex(a => a.id === selectedAudienceId) : -1;
+                  const aud = stage && audIndex !== -1 ? campaign.meta[stage][audIndex] : null;
+                  const crIndex = aud ? aud.creatives.findIndex(c => c.id === selectedCreativeId) : -1;
+                  const cr = aud && crIndex !== -1 ? aud.creatives[crIndex] : null;
 
-              <div className="space-y-4">
-                {campaign.meta[activeStage].map((aud, i) => (
-                  <AudienceEditor
-                    key={aud.id}
-                    audience={aud}
-                    channel="meta"
-                    currentStage={activeStage}
-                    onChange={(updated) => {
-                      const list = [...campaign.meta[activeStage]];
-                      list[i] = updated as MetaAudience;
-                      setMetaAudiences(activeStage, list);
-                    }}
-                    onRemove={() => {
-                      const list = campaign.meta[activeStage].filter(
-                        (_, idx) => idx !== i
-                      );
-                      setMetaAudiences(activeStage, list);
-                    }}
-                    onSave={() => saveAudience(aud.title || "Público sem nome", "meta", aud)}
-                    onMoveStage={(newStage) => {
-                      const from = campaign.meta[activeStage].filter((_, idx) => idx !== i);
-                      const to = [...campaign.meta[newStage], aud];
-                      setCampaign({ ...campaign, meta: { ...campaign.meta, [activeStage]: from, [newStage]: to } });
-                    }}
-                    allStageAudiences={(["top", "middle", "bottom"] as StageKey[]).map((s) => ({ stage: s, audiences: campaign.meta[s] }))}
-                    onMoveCreative={(creativeIndex, targetStage, targetAudienceId) => {
-                      // Remove do público atual
-                      const creative = (aud.creatives as any[])[creativeIndex];
-                      const updatedCurrentAud = { ...aud, creatives: (aud.creatives as any[]).filter((_, ci) => ci !== creativeIndex) };
-                      const currentList = campaign.meta[activeStage].map((a) => a.id === aud.id ? updatedCurrentAud : a);
-                      // Adiciona ao público de destino
-                      const targetList = campaign.meta[targetStage].map((a) =>
-                        a.id === targetAudienceId ? { ...a, creatives: [...(a.creatives as any[]), { ...creative, id: `cr-${Date.now()}-${Math.random().toString(36).slice(2,5)}` }] } : a
-                      );
-                      setCampaign({ ...campaign, meta: { ...campaign.meta, [activeStage]: currentList as MetaAudience[], [targetStage]: targetList as MetaAudience[] } });
-                    }}
-                  />
-                ))}
-                <div className="flex gap-2">
-                  <button
-                    onClick={addMetaAudience}
-                    className="flex-1 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/30 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Adicionar Público
-                  </button>
-                  <button
-                    onClick={() => setLibraryModal({ channel: "meta" })}
-                    className="py-4 px-5 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50/30 transition-all flex items-center gap-2"
-                  >
-                    <Library className="w-5 h-5" />
-                    Da Biblioteca
-                  </button>
+                  if (!stage || !aud || !cr) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
+                        <p className="font-medium">Criativo não encontrado.</p>
+                        <button onClick={() => setSelectedCreativeId(null)} className="text-blue-600 mt-4 font-bold hover:underline">
+                          Voltar para Público
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedCreativeId(null)}
+                          className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-blue-600 transition-all"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          Voltar para Público: {aud.title}
+                        </button>
+                      </div>
+                      
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
+                            {cr.format === "Video" ? <Video className="w-5 h-5" /> : <ImageIcon className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <h4 className="text-base font-bold text-slate-900">{cr.name || "Criativo sem nome"}</h4>
+                            <p className="text-[11px] text-slate-500">{cr.format} • Meta Ads</p>
+                          </div>
+                        </div>
+
+                        <MetaCreativeEditor
+                          creative={cr}
+                          collapsible={false}
+                          onChange={(updated) => {
+                            const newCreatives = [...aud.creatives];
+                            newCreatives[crIndex] = updated;
+                            const newAudiences = [...campaign.meta[stage]];
+                            newAudiences[audIndex] = { ...aud, creatives: newCreatives };
+                            setMetaAudiences(stage, newAudiences);
+                          }}
+                          onRemove={() => {
+                            const newCreatives = aud.creatives.filter((_, i) => i !== crIndex);
+                            const newAudiences = [...campaign.meta[stage]];
+                            newAudiences[audIndex] = { ...aud, creatives: newCreatives };
+                            setMetaAudiences(stage, newAudiences);
+                            setSelectedCreativeId(null);
+                          }}
+                          onSave={() => saveAudience(cr.name || "Criativo", "meta", aud)} // Reusing save logic
+                        />
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : !selectedAudienceId ? (
+                // Channel Overview
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4 p-5 bg-blue-50/50 border border-blue-100 rounded-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-200">
+                      <Share2 className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-slate-900">Meta Ads</h3>
+                      <p className="text-xs text-slate-500">Facebook e Instagram · Gestão de Públicos e Criativos</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Verba Alocada</p>
+                      <p className="text-xl font-bold text-blue-600">R$ {campaign.budgetAllocation.metaBudget?.toLocaleString("pt-BR") || "0"}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {STAGES.map((s) => (
+                      <div key={s} className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${EDITOR_STAGE_LABELS[s].color} text-white`}>
+                            {EDITOR_STAGE_LABELS[s].short}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">{campaign.meta[s].length} Públicos</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {campaign.meta[s].map((aud) => (
+                            <button
+                              key={aud.id}
+                              onClick={() => setSelectedAudienceId(aud.id)}
+                              className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-blue-400 hover:shadow-sm transition-all text-left group"
+                            >
+                              <span className="truncate">{aud.title}</span>
+                              <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const newAud: MetaAudience = {
+                                id: uid(),
+                                title: "Novo Público",
+                                description: "",
+                                tag: "Segmentação",
+                                creatives: [],
+                              };
+                              setMetaAudiences(s, [...campaign.meta[s], newAud]);
+                              setSelectedAudienceId(newAud.id);
+                            }}
+                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-blue-200 hover:text-blue-500 hover:bg-white transition-all"
+                          >
+                            + Adicionar Público
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setLibraryModal({ channel: "meta" })}
+                      className="px-6 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-amber-400 hover:text-amber-500 hover:bg-white transition-all flex items-center gap-2"
+                    >
+                      <Library className="w-5 h-5" />
+                      Importar da Biblioteca de Públicos
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // Selected Audience Editor
+                (() => {
+                  const stage = STAGES.find((s) => campaign.meta[s].some((a) => a.id === selectedAudienceId));
+                  const audIndex = stage ? campaign.meta[stage].findIndex((a) => a.id === selectedAudienceId) : -1;
+                  const aud = stage && audIndex !== -1 ? campaign.meta[stage][audIndex] : null;
+
+                  if (!stage || !aud) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
+                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                          <X className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <p className="font-medium">Público não encontrado nesta visualização.</p>
+                        <button 
+                          onClick={() => setSelectedAudienceId(null)} 
+                          className="text-blue-600 mt-4 font-bold hover:underline"
+                        >
+                          Voltar para Meta Ads
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedAudienceId(null)}
+                          className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          Voltar para Meta Ads
+                        </button>
+                        
+                        <div className="flex items-center gap-3">
+                           <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md ${EDITOR_STAGE_LABELS[stage].color} text-white shadow-sm shadow-slate-200`}>
+                              {EDITOR_STAGE_LABELS[stage].label}
+                           </span>
+                        </div>
+                      </div>
+                      
+                      <AudienceEditor
+                        key={aud.id}
+                        audience={aud}
+                        channel="meta"
+                        currentStage={stage}
+                        onChange={(updated) => {
+                          const list = [...campaign.meta[stage]];
+                          list[audIndex] = updated as MetaAudience;
+                          setMetaAudiences(stage, list);
+                        }}
+                        onRemove={() => {
+                          const list = campaign.meta[stage].filter((_, idx) => idx !== audIndex);
+                          setMetaAudiences(stage, list);
+                          setSelectedAudienceId(null);
+                        }}
+                        onSave={() => saveAudience(aud.title || "Público sem nome", "meta", aud)}
+                        onMoveStage={(newStage) => {
+                          const from = campaign.meta[stage].filter((_, idx) => idx !== audIndex);
+                          const to = [...campaign.meta[newStage], aud];
+                          setCampaign({ 
+                            ...campaign, 
+                            meta: { ...campaign.meta, [stage]: from, [newStage]: to } 
+                          } as Campaign);
+                        }}
+                        allStageAudiences={STAGES.map((s) => ({ stage: s, audiences: campaign.meta[s] }))}
+                        onMoveCreative={(creativeIndex, targetStage, targetAudienceId) => {
+                          const creative = aud.creatives[creativeIndex];
+                          const updatedCurrentAud = {
+                            ...aud,
+                            creatives: aud.creatives.filter((_, ci) => ci !== creativeIndex),
+                          };
+                          const currentList = campaign.meta[stage].map((a) => (a.id === aud.id ? updatedCurrentAud : a));
+                          const targetList = campaign.meta[targetStage].map((a) =>
+                            a.id === targetAudienceId
+                              ? {
+                                  ...a,
+                                  creatives: [
+                                    ...a.creatives,
+                                    { ...creative, id: `cr-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` },
+                                  ],
+                                }
+                              : a
+                          );
+                          setCampaign({
+                            ...campaign,
+                            meta: {
+                              ...campaign.meta,
+                              [stage]: currentList as MetaAudience[],
+                              [targetStage]: targetList as MetaAudience[],
+                            },
+                          } as Campaign);
+                        }}
+                      />
+                    </div>
+                  );
+                })()
+              )}
             </motion.div>
           )}
 
@@ -1621,112 +1982,245 @@ export function StrategyEditor() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8"
+              className="w-full"
             >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-100">
-                    <Globe className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-slate-900">
-                      Estratégia Google Ads
-                    </h3>
-                    <p className="text-sm text-slate-500">
-                      Públicos e criativos por etapa do funil
-                    </p>
-                  </div>
-                </div>
-                <div className="flex bg-slate-100 p-1 rounded-xl">
-                  {(["top", "middle", "bottom"] as StageKey[]).map((s) => {
-                    const count = campaign.google[s].length;
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => setActiveStage(s)}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 ${
-                          activeStage === s
-                            ? "bg-white text-emerald-600 shadow-sm"
-                            : "text-slate-400 hover:text-slate-600"
-                        }`}
-                      >
-                        {EDITOR_STAGE_LABELS[s]?.short}
-                        <span
-                          className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full leading-none ${
-                            activeStage === s
-                              ? count === 0
-                                ? "bg-amber-100 text-amber-600"
-                                : "bg-emerald-100 text-emerald-600"
-                              : count === 0
-                              ? "bg-amber-50 text-amber-400"
-                              : "bg-slate-200 text-slate-500"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              {selectedAudienceId && selectedCreativeId ? (
+                // Focused Creative Editor Google
+                (() => {
+                  const stage = STAGES.find(s => campaign.google[s].some(a => a.id === selectedAudienceId));
+                  const audIndex = stage ? campaign.google[stage].findIndex(a => a.id === selectedAudienceId) : -1;
+                  const aud = stage && audIndex !== -1 ? campaign.google[stage][audIndex] : null;
+                  const crIndex = aud ? aud.creatives.findIndex(c => c.id === selectedCreativeId) : -1;
+                  const cr = aud && crIndex !== -1 ? aud.creatives[crIndex] : null;
 
-              <div className="space-y-4">
-                {campaign.google[activeStage].map((aud, i) => (
-                  <AudienceEditor
-                    key={aud.id}
-                    audience={aud}
-                    channel="google"
-                    currentStage={activeStage}
-                    onChange={(updated) => {
-                      const list = [...campaign.google[activeStage]];
-                      list[i] = updated as GoogleAudience;
-                      setGoogleAudiences(activeStage, list);
-                    }}
-                    onRemove={() => {
-                      const list = campaign.google[activeStage].filter(
-                        (_, idx) => idx !== i
-                      );
-                      setGoogleAudiences(activeStage, list);
-                    }}
-                    onSave={() => saveAudience(aud.title || "Público sem nome", "google", aud)}
-                    onMoveStage={(newStage) => {
-                      const from = campaign.google[activeStage].filter((_, idx) => idx !== i);
-                      const to = [...campaign.google[newStage], aud];
-                      setCampaign({ ...campaign, google: { ...campaign.google, [activeStage]: from, [newStage]: to } });
-                    }}
-                    allStageAudiences={(["top", "middle", "bottom"] as StageKey[]).map((s) => ({ stage: s, audiences: campaign.google[s] }))}
-                    onMoveCreative={(creativeIndex, targetStage, targetAudienceId) => {
-                      const creative = (aud.creatives as any[])[creativeIndex];
-                      const updatedCurrentAud = { ...aud, creatives: (aud.creatives as any[]).filter((_, ci) => ci !== creativeIndex) };
-                      const currentList = campaign.google[activeStage].map((a) => a.id === aud.id ? updatedCurrentAud : a);
-                      const targetList = campaign.google[targetStage].map((a) =>
-                        a.id === targetAudienceId ? { ...a, creatives: [...(a.creatives as any[]), { ...creative, id: `cr-${Date.now()}-${Math.random().toString(36).slice(2,5)}` }] } : a
-                      );
-                      setCampaign({ ...campaign, google: { ...campaign.google, [activeStage]: currentList as GoogleAudience[], [targetStage]: targetList as GoogleAudience[] } });
-                    }}
-                  />
-                ))}
-                <div className="flex gap-2">
-                  <button
-                    onClick={addGoogleAudience}
-                    className="flex-1 py-4 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-emerald-400 hover:text-emerald-500 hover:bg-emerald-50/30 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Adicionar Público
-                  </button>
-                  <button
-                    onClick={() => setLibraryModal({ channel: "google" })}
-                    className="py-4 px-5 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-amber-400 hover:text-amber-500 hover:bg-amber-50/30 transition-all flex items-center gap-2"
-                  >
-                    <Library className="w-5 h-5" />
-                    Da Biblioteca
-                  </button>
+                  if (!stage || !aud || !cr) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
+                        <p className="font-medium">Criativo não encontrado.</p>
+                        <button onClick={() => setSelectedCreativeId(null)} className="text-emerald-600 mt-4 font-bold hover:underline">
+                          Voltar para Público
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedCreativeId(null)}
+                          className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-all font-bold"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          Voltar para Público: {aud.title}
+                        </button>
+                      </div>
+
+                      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-100">
+                          <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                            {cr.format === "Search" || cr.format === "Display" ? <SearchIcon className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                          </div>
+                          <div>
+                            <h4 className="text-base font-bold text-slate-900">{cr.name || "Criativo sem nome"}</h4>
+                            <p className="text-[11px] text-slate-500">{cr.format} • Google Ads</p>
+                          </div>
+                        </div>
+                        
+                        <GoogleCreativeEditor
+                          creative={cr}
+                          collapsible={false}
+                          onChange={(updated) => {
+                            const newCreatives = [...aud.creatives];
+                            newCreatives[crIndex] = updated;
+                            const newAudiences = [...campaign.google[stage]];
+                            newAudiences[audIndex] = { ...aud, creatives: newCreatives };
+                            setGoogleAudiences(stage, newAudiences);
+                          }}
+                          onRemove={() => {
+                            const newCreatives = aud.creatives.filter((_, i) => i !== crIndex);
+                            const newAudiences = [...campaign.google[stage]];
+                            newAudiences[audIndex] = { ...aud, creatives: newCreatives };
+                            setGoogleAudiences(stage, newAudiences);
+                            setSelectedCreativeId(null);
+                          }}
+                          onSave={() => saveAudience(cr.name || "Criativo", "google", aud)}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : !selectedAudienceId ? (
+                // Channel Overview
+                <div className="space-y-6">
+                  <div className="flex items-center gap-4 p-5 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-200">
+                      <Globe className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold text-slate-900">Google Ads</h3>
+                      <p className="text-xs text-slate-500">Search · Display · YouTube · Discovery</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Verba Alocada</p>
+                      <p className="text-xl font-bold text-emerald-600">R$ {campaign.budgetAllocation.googleBudget?.toLocaleString("pt-BR") || "0"}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {STAGES.map((s) => (
+                      <div key={s} className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md ${EDITOR_STAGE_LABELS[s].color} text-white`}>
+                            {EDITOR_STAGE_LABELS[s].short}
+                          </span>
+                          <span className="text-[10px] font-bold text-slate-400">{campaign.google[s].length} Públicos</span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {campaign.google[s].map((aud) => (
+                            <button
+                              key={aud.id}
+                              onClick={() => setSelectedAudienceId(aud.id)}
+                              className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
+                            >
+                              <span className="truncate">{aud.title}</span>
+                              <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                            </button>
+                          ))}
+                          <button
+                            onClick={() => {
+                              const newAud: GoogleAudience = {
+                                id: uid(),
+                                title: "Novo Público Google",
+                                description: "",
+                                tag: "Segmentação",
+                                creatives: [],
+                              };
+                              setGoogleAudiences(s, [...campaign.google[s], newAud]);
+                              setSelectedAudienceId(newAud.id);
+                            }}
+                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-emerald-200 hover:text-emerald-500 hover:bg-white transition-all"
+                          >
+                            + Adicionar Público
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setLibraryModal({ channel: "google" })}
+                      className="px-6 py-3 border-2 border-dashed border-slate-200 rounded-2xl text-sm font-bold text-slate-400 hover:border-amber-400 hover:text-amber-500 hover:bg-white transition-all flex items-center gap-2"
+                    >
+                      <Library className="w-5 h-5" />
+                      Importar da Biblioteca de Públicos
+                    </button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                // Selected Audience Editor
+                (() => {
+                  const stage = STAGES.find((s) => campaign.google[s].some((a) => a.id === selectedAudienceId));
+                  const audIndex = stage ? campaign.google[stage].findIndex((a) => a.id === selectedAudienceId) : -1;
+                  const aud = stage && audIndex !== -1 ? campaign.google[stage][audIndex] : null;
+
+                  if (!stage || !aud) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-20 text-slate-400 border-2 border-dashed border-slate-100 rounded-3xl">
+                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mb-4">
+                          <X className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <p className="font-medium">Público não encontrado nesta visualização.</p>
+                        <button 
+                          onClick={() => setSelectedAudienceId(null)} 
+                          className="text-emerald-600 mt-4 font-bold hover:underline"
+                        >
+                          Voltar para Google Ads
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => setSelectedAudienceId(null)}
+                          className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-all font-bold"
+                        >
+                          <ArrowLeft className="w-3.5 h-3.5" />
+                          Voltar para Google Ads
+                        </button>
+                        <div className="flex items-center gap-3">
+                           <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-md ${EDITOR_STAGE_LABELS[stage].color} text-white shadow-sm shadow-slate-200`}>
+                              {EDITOR_STAGE_LABELS[stage].label}
+                           </span>
+                        </div>
+                      </div>
+                      
+                      <AudienceEditor
+                        key={aud.id}
+                        audience={aud}
+                        channel="google"
+                        currentStage={stage}
+                        onChange={(updated) => {
+                          const list = [...campaign.google[stage]];
+                          list[audIndex] = updated as GoogleAudience;
+                          setGoogleAudiences(stage, list);
+                        }}
+                        onRemove={() => {
+                          const list = campaign.google[stage].filter((_, idx) => idx !== audIndex);
+                          setGoogleAudiences(stage, list);
+                          setSelectedAudienceId(null);
+                        }}
+                        onSave={() => saveAudience(aud.title || "Público sem nome", "google", aud)}
+                        onMoveStage={(newStage) => {
+                          const from = campaign.google[stage].filter((_, idx) => idx !== audIndex);
+                          const to = [...campaign.google[newStage], aud];
+                          setCampaign({ 
+                            ...campaign, 
+                            google: { ...campaign.google, [stage]: from, [newStage]: to } 
+                          } as Campaign);
+                        }}
+                        allStageAudiences={STAGES.map((s) => ({ stage: s, audiences: campaign.google[s] }))}
+                        onMoveCreative={(creativeIndex, targetStage, targetAudienceId) => {
+                          const creative = aud.creatives[creativeIndex];
+                          const updatedCurrentAud = {
+                            ...aud,
+                            creatives: aud.creatives.filter((_, ci) => ci !== creativeIndex),
+                          };
+                          const currentList = campaign.google[stage].map((a) => (a.id === aud.id ? updatedCurrentAud : a));
+                          const targetList = campaign.google[targetStage].map((a) =>
+                            a.id === targetAudienceId
+                              ? {
+                                  ...a,
+                                  creatives: [
+                                    ...a.creatives,
+                                    { ...creative, id: `cr-${Date.now()}-${Math.random().toString(36).slice(2, 5)}` },
+                                  ],
+                                }
+                              : a
+                          );
+                          setCampaign({
+                            ...campaign,
+                            google: {
+                              ...campaign.google,
+                              [stage]: currentList as GoogleAudience[],
+                              [targetStage]: targetList as GoogleAudience[],
+                            },
+                          } as Campaign);
+                        }}
+                      />
+                    </div>
+                  );
+                })()
+              )}
             </motion.div>
           )}
-        </AnimatePresence>
-      </div>
+          </AnimatePresence>
+        </div>
+      </main>
 
       {/* Library picker modal */}
       <AnimatePresence>
@@ -1735,17 +2229,20 @@ export function StrategyEditor() {
             channel={libraryModal.channel}
             savedAudiences={savedAudiences}
             onPick={(audience) => {
-              if (libraryModal.channel === "meta") {
-                setMetaAudiences(activeStage, [
-                  ...campaign.meta[activeStage],
+              const channel = libraryModal.channel;
+              const targetStage = activeStage; // Or some default logic
+              if (channel === "meta") {
+                setMetaAudiences(targetStage, [
+                  ...campaign.meta[targetStage],
                   audience as MetaAudience,
                 ]);
               } else {
-                setGoogleAudiences(activeStage, [
-                  ...campaign.google[activeStage],
+                setGoogleAudiences(targetStage, [
+                  ...campaign.google[targetStage],
                   audience as GoogleAudience,
                 ]);
               }
+              setLibraryModal(null);
             }}
             onClose={() => setLibraryModal(null)}
           />

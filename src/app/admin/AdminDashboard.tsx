@@ -39,7 +39,7 @@ function LogItem({ log, isLast }: { log: ActivityLog; isLast: boolean }) {
   return (
     <div className="flex gap-3 relative">
       {!isLast && (
-        <div className="absolute left-[11px] top-8 bottom-[-24px] w-[1px] bg-slate-100" />
+        <div className="absolute left-[11px] top-8 bottom-[-24px] w-[1px] bg-slate-200" />
       )}
       <div className="w-6 h-6 rounded-full bg-blue-50 flex-shrink-0 flex items-center justify-center relative z-10 mt-0.5">
         <div className="w-2 h-2 rounded-full bg-blue-500" />
@@ -143,7 +143,7 @@ export function AdminDashboard() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white p-4 md:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow"
+            className="bg-white p-4 md:p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between mb-3 md:mb-4">
               <div
@@ -186,7 +186,7 @@ export function AdminDashboard() {
           </div>
 
           {recentClients.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12 text-center">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-12 text-center">
               <p className="text-slate-400 font-medium mb-3">
                 Nenhum cliente cadastrado ainda.
               </p>
@@ -198,11 +198,11 @@ export function AdminDashboard() {
               </Link>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse min-w-[500px]">
                 <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <tr className="bg-slate-50/50 border-b border-slate-200">
                     <th className="px-6 py-4 text-[10px] uppercase font-bold text-slate-400 tracking-widest">
                       Cliente
                     </th>
@@ -215,7 +215,7 @@ export function AdminDashboard() {
                     <th className="px-6 py-4" />
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50">
+                <tbody className="divide-y divide-slate-100">
                   {recentClients.map((client) => (
                     <tr
                       key={client.id}
@@ -289,7 +289,7 @@ export function AdminDashboard() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm">
             {recentLogs.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-8 text-center">
                 <div className="w-12 h-12 rounded-full bg-slate-50 flex items-center justify-center">
@@ -312,7 +312,7 @@ export function AdminDashboard() {
                   />
                 ))}
                 {activityLogs.length > 6 && (
-                  <p className="text-xs text-center text-slate-400 pt-2 border-t border-slate-50">
+                  <p className="text-xs text-center text-slate-400 pt-2 border-t border-slate-100">
                     +{activityLogs.length - 6} atividades anteriores
                   </p>
                 )}

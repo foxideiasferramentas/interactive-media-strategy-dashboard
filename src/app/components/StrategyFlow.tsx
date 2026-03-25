@@ -505,7 +505,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const currentZoom = zoom.current;
 
   return (
-    <div className="flex flex-col lg:flex-row gap-0 w-full bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm" style={{ minHeight: 600, height: isMobile ? "auto" : 680 }}>
+    <div className="flex flex-col lg:flex-row gap-0 w-full bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm" style={{ minHeight: 600, height: isMobile ? "auto" : 680 }}>
 
       {/* ── CANVAS ─────────────────────────────────────────────────────────── */}
       <div
@@ -597,8 +597,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                     whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     className={`w-32 p-3 rounded-xl border-2 shadow cursor-pointer select-none transition-all ${
                       isEnabled
-                        ? channel === "meta" ? "bg-white border-blue-100" : "bg-white border-emerald-100"
-                        : "bg-slate-50 border-slate-100 opacity-40 grayscale"
+                        ? channel === "meta" ? "bg-white border-blue-200" : "bg-white border-emerald-200"
+                        : "bg-slate-50 border-slate-200 opacity-40 grayscale"
                     }`}
                   >
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 ${channel === "meta" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"}`}>
@@ -635,7 +635,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                         id={`node-stage-${stageKey}`}
                         onClick={() => setExpandedStageKey(p => p === stageKey ? null : stageKey)}
                         whileHover={{ scale: 1.02 }}
-                        className={`w-28 p-2.5 rounded-xl border-2 shadow-sm bg-white cursor-pointer select-none ${FLOW_STAGE_LABELS[stageKey].bg} border-slate-100`}
+                        className={`w-28 p-2.5 rounded-xl border-2 shadow-sm bg-white cursor-pointer select-none ${FLOW_STAGE_LABELS[stageKey].bg} border-slate-200`}
                       >
                         <div className={`text-[7px] font-black uppercase tracking-widest mb-0.5 bg-gradient-to-r ${FLOW_STAGE_LABELS[stageKey].color} bg-clip-text text-transparent`}>
                           {stageKey.toUpperCase()}
@@ -758,7 +758,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                             <AddButton label="Público Meta" color="blue" onClick={() => addAudience("meta", stageKey)} />
                             <button
                               onClick={() => { setLibraryStageKey(stageKey); setLibraryChannel("meta"); }}
-                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 text-blue-400 hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
+                               className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 text-blue-400 hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm"
                               title="Biblioteca"
                             >
                               <Book className="w-4 h-4" />
@@ -823,7 +823,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                             <AddButton label="Público Google" color="emerald" onClick={() => addAudience("google", stageKey)} />
                             <button
                               onClick={() => { setLibraryStageKey(stageKey); setLibraryChannel("google"); }}
-                              className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-400 hover:bg-emerald-100 transition-colors border border-emerald-100 shadow-sm"
+                               className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-400 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm"
                               title="Biblioteca"
                             >
                               <Book className="w-4 h-4" />
@@ -864,11 +864,11 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
             animate={isMobile ? { height: "auto", opacity: 1 } : { width: 280, opacity: 1 }}
             exit={isMobile ? { height: 0, opacity: 0 } : { width: 0, opacity: 0 }}
             transition={{ duration: 0.22, ease: "easeInOut" }}
-            className={`flex-shrink-0 overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-100 bg-white z-50 ${isMobile ? "w-full" : ""}`}
+            className={`flex-shrink-0 overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-200 bg-white z-50 ${isMobile ? "w-full" : ""}`}
           >
             <div className={`${isMobile ? "w-full" : "w-[280px]"} h-full flex flex-col overflow-hidden`}>
               {/* Cabeçalho / Edição de Público */}
-              <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3 border-b border-slate-100 bg-slate-50/30">
+              <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3 border-b border-slate-200 bg-slate-50/30">
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className={`text-[8px] font-black uppercase tracking-widest ${panelData.channel === "meta" ? "text-blue-500" : "text-emerald-500"}`}>
                     {panelData.channel === "meta" ? "Meta Ads" : "Google Ads"} · {FLOW_STAGE_LABELS[panelData.stage].label}
@@ -883,7 +883,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                       value={panelData.audience.tag || ""}
                       placeholder="Tag (ex: Lookalike)"
                       onChange={(e) => updateAudience(panelData.audience.id, panelData.channel, panelData.stage, { tag: e.target.value })}
-                      className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-100 text-slate-500 outline-none w-24 focus:border-blue-200"
+                       className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-500 outline-none w-24 focus:border-blue-200"
                     />
                   </div>
 
@@ -1004,7 +1004,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                         } rounded-xl`}
                       >
                         {/* Thumbnail */}
-                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 overflow-hidden flex-shrink-0 shadow-sm">
+                        <div className="w-10 h-10 rounded-lg bg-white border border-slate-200 overflow-hidden flex-shrink-0 shadow-sm">
                           {cr.imageUrl
                             ? <img src={cr.imageUrl} className="w-full h-full object-cover" alt="" />
                             : <div className="w-full h-full flex items-center justify-center text-slate-200">{creativeIcon(cr.format)}</div>
@@ -1042,7 +1042,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: "auto", opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            className="border border-blue-100 rounded-2xl bg-white overflow-hidden shadow-sm"
+                             className="border border-blue-200 rounded-2xl bg-white overflow-hidden shadow-sm"
                           >
                             <div className="p-1">
                               {panelData.channel === "meta" ? (
@@ -1165,7 +1165,7 @@ function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDro
           ? channel === "meta" ? "bg-blue-50 border-blue-500 shadow-md ring-4 ring-blue-500/10" : "bg-emerald-50 border-emerald-500 shadow-md ring-4 ring-emerald-500/10"
           : isHovered
           ? "bg-blue-50 border-blue-400 border-dashed shadow-md"
-          : "bg-white border-slate-100 hover:border-slate-300 shadow-sm"
+           : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"
       }`}
     >
       <div className="flex items-center gap-2">
@@ -1223,7 +1223,7 @@ function CreativeNode({ creative, audienceId, channel, onDuplicate, onDelete, on
   onDragStart: () => void; onDragEnd: (e: any, info: any) => void;
 }) {
   const isGoogle = channel === "google";
-  const accent = isGoogle ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-blue-600 bg-blue-50 border-blue-100";
+  const accent = isGoogle ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-blue-600 bg-blue-50 border-blue-200";
   return (
     <motion.div
       id={`node-cr-${creative.id}`}
@@ -1410,7 +1410,7 @@ function LibraryPopover({ onSelect, onClose }: { onSelect: (s: any) => void; onC
       initial={{ opacity: 0, scale: 0.9, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.9, y: 10 }}
-      className="absolute top-full left-32 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-[100] p-4 overflow-hidden"
+       className="absolute top-full left-32 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-[100] p-4 overflow-hidden"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-between mb-3">
@@ -1428,7 +1428,7 @@ function LibraryPopover({ onSelect, onClose }: { onSelect: (s: any) => void; onC
           savedAudiences.map((saved) => (
             <div 
               key={saved.id}
-              className="group relative flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
+               className="group relative flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
               onClick={() => onSelect(saved)}
             >
               <div className="flex-1 min-w-0 pr-6 text-left">

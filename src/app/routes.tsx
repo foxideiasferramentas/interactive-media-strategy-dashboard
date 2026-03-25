@@ -18,19 +18,30 @@ export const router = createBrowserRouter([
     path: "/login",
     Component: LoginPage,
   },
+  // ─── Shared/Public Routes ──────────────────────────────────────────────────
   {
     path: "/",
+    Component: Layout,
+    children: [
+      { index: true, Component: Overview },
+      { path: "meta-ads", Component: MetaAds },
+      { path: "google-ads", Component: GoogleAds },
+    ],
+  },
+  {
+    path: "/share/:campaignId",
+    Component: Layout,
+    children: [
+      { index: true, Component: Overview },
+      { path: "meta-ads", Component: MetaAds },
+      { path: "google-ads", Component: GoogleAds },
+    ],
+  },
+  // ─── Protected Admin Routes ────────────────────────────────────────────────
+  {
+    path: "/admin",
     Component: AuthGuard,
     children: [
-      {
-        path: "/",
-        Component: Layout,
-        children: [
-          { index: true, Component: Overview },
-          { path: "meta-ads", Component: MetaAds },
-          { path: "google-ads", Component: GoogleAds },
-        ],
-      },
       {
         path: "/admin",
         Component: AdminLayout,

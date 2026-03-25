@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, Globe, Target, TrendingUp } from "lucide-react";
 import type { ElementType } from "react";
@@ -103,8 +104,9 @@ function EmptyState({ step }: { step: FunnelStep }) {
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 export function GoogleAds() {
-  const { getActiveCampaign, getClient, updateCampaign } = useStore();
-  const campaign = getActiveCampaign();
+  const { campaignId } = useParams();
+  const { getActiveCampaign, getCampaign, getClient, updateCampaign } = useStore();
+  const campaign = campaignId ? getCampaign(campaignId) : getActiveCampaign();
   const client = campaign ? getClient(campaign.clientId) : undefined;
   const companyName = client?.company;
   const companyUrl = client?.website;
@@ -323,6 +325,7 @@ export function GoogleAds() {
         companyName={companyName}
         companyUrl={companyUrl}
         companyLogo={companyLogo}
+        readOnly={!!campaignId}
       />
     </div>
   );

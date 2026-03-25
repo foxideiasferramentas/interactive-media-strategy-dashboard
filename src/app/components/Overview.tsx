@@ -1,4 +1,4 @@
-import { Link } from "react-router";
+import { Link, useParams } from "react-router";
 import { motion } from "motion/react";
 import {
   ArrowRight,
@@ -87,7 +87,7 @@ function MediaFlowMap() {
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.08 }}
-      className="bg-white rounded-2xl border border-gray-100 p-8 relative overflow-hidden shadow-sm"
+      className="bg-white rounded-2xl border border-gray-200 p-8 relative overflow-hidden shadow-sm"
     >
       <div className="flex items-center justify-between mb-10 relative z-20">
         <div>
@@ -98,7 +98,7 @@ function MediaFlowMap() {
           <p className="text-sm text-gray-400">Visualização da jornada do tráfego e ecossistema de conversão</p>
         </div>
         <div className="flex gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full border border-emerald-100 font-medium">
+          <span className="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full border border-emerald-200 font-medium">
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
              Fluxo em Tempo Real
           </span>
@@ -110,9 +110,9 @@ function MediaFlowMap() {
         {/* Sources */}
         <div className="flex flex-col gap-6 relative z-20 w-full md:w-auto">
           {[
-            { name: "Meta Ads", icon: Share2, color: "text-pink-500", bg: "bg-pink-50", border: "border-pink-100" },
-            { name: "Google Ads", icon: Globe, color: "text-blue-500", bg: "bg-blue-50", border: "border-blue-100" },
-            { name: "Orgânico", icon: Users, color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-100" },
+            { name: "Meta Ads", icon: Share2, color: "text-pink-500", bg: "bg-pink-50", border: "border-pink-200" },
+            { name: "Google Ads", icon: Globe, color: "text-blue-500", bg: "bg-blue-50", border: "border-blue-200" },
+            { name: "Orgânico", icon: Users, color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
           ].map((source, i) => (
             <motion.div
               key={source.name}
@@ -139,7 +139,7 @@ function MediaFlowMap() {
           <motion.div
             animate={{ y: [0, -5, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="w-48 h-48 lg:w-56 lg:h-56 rounded-3xl bg-white border border-gray-100 shadow-xl flex flex-col items-center justify-center p-6 relative"
+            className="w-48 h-48 lg:w-56 lg:h-56 rounded-3xl bg-white border border-gray-200 shadow-xl flex flex-col items-center justify-center p-6 relative"
           >
             <div className="absolute inset-0 bg-blue-50/30 rounded-3xl blur-2xl -z-10" />
             <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
@@ -177,7 +177,7 @@ function MediaFlowMap() {
              initial={{ opacity: 0 }}
              animate={{ opacity: 1 }}
              transition={{ delay: 1 }}
-             className="bg-white border border-gray-100 rounded-xl p-4 flex flex-col items-center gap-2 w-full md:w-48 shadow-sm relative overflow-hidden group"
+             className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center gap-2 w-full md:w-48 shadow-sm relative overflow-hidden group"
            >
               <div className="flex items-center gap-2 text-violet-600">
                  <RefreshCw className="w-4 h-4 animate-spin-slow" />
@@ -200,8 +200,10 @@ function MediaFlowMap() {
 }
 
 export function Overview() {
-  const { getActiveCampaign } = useStore();
-  const campaign = getActiveCampaign();
+  const { campaignId } = useParams();
+  const { getActiveCampaign, getCampaign } = useStore();
+  
+  const campaign = campaignId ? getCampaign(campaignId) : getActiveCampaign();
 
   // Dynamic objectives — fall back to static defaults if no campaign
   const obj = campaign?.objectives;
@@ -213,7 +215,7 @@ export function Overview() {
       sub: "Retorno sobre o investimento",
       color: "text-blue-600",
       bg: "bg-blue-50",
-      border: "border-blue-100",
+      border: "border-blue-200",
     },
     {
       icon: Users,
@@ -222,7 +224,7 @@ export function Overview() {
       sub: "Por mês, funil completo",
       color: "text-violet-600",
       bg: "bg-violet-50",
-      border: "border-violet-100",
+      border: "border-violet-200",
     },
     {
       icon: Target,
@@ -231,7 +233,7 @@ export function Overview() {
       sub: "Impressões qualificadas",
       color: "text-emerald-600",
       bg: "bg-emerald-50",
-      border: "border-emerald-100",
+      border: "border-emerald-200",
     },
     {
       icon: Zap,
@@ -240,7 +242,7 @@ export function Overview() {
       sub: "Custo de aquisição de cliente",
       color: "text-amber-600",
       bg: "bg-amber-50",
-      border: "border-amber-100",
+      border: "border-amber-200",
     },
   ];
 
@@ -256,7 +258,7 @@ export function Overview() {
       metric: f?.top.metricValue ? `${f.top.metricValue} ${f.top.metricUnit}` : "500K impressões/mês",
       color: "bg-blue-600",
       lightBg: "bg-blue-50",
-      border: "border-blue-100",
+      border: "border-blue-200",
       textColor: "text-blue-700",
       badgeColor: "bg-blue-100 text-blue-700",
       width: "w-full",
@@ -270,7 +272,7 @@ export function Overview() {
       metric: f?.middle.metricValue ? `${f.middle.metricValue} ${f.middle.metricUnit}` : "15K visitantes/mês",
       color: "bg-violet-600",
       lightBg: "bg-violet-50",
-      border: "border-violet-100",
+      border: "border-violet-200",
       textColor: "text-violet-700",
       badgeColor: "bg-violet-100 text-violet-700",
       width: "w-4/5",
@@ -284,7 +286,7 @@ export function Overview() {
       metric: f?.bottom.metricValue ? `${f.bottom.metricValue} ${f.bottom.metricUnit}` : "200 conversões/mês",
       color: "bg-emerald-600",
       lightBg: "bg-emerald-50",
-      border: "border-emerald-100",
+      border: "border-emerald-200",
       textColor: "text-emerald-700",
       badgeColor: "bg-emerald-100 text-emerald-700",
       width: "w-3/5",
@@ -304,7 +306,7 @@ export function Overview() {
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+        className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
       >
         <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 py-10 md:py-12 relative overflow-hidden">
           {/* decorative grid */}
@@ -345,11 +347,11 @@ export function Overview() {
         </div>
 
         {/* Bottom stats bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-gray-100 border-t border-gray-100">
+        <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-gray-200 border-t border-gray-200">
           {objectives.map((obj) => {
             const Icon = obj.icon;
             return (
-              <div key={obj.label} className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-b md:border-b-0 border-gray-100 last:border-b-0 odd:border-r md:border-r-0">
+              <div key={obj.label} className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-b md:border-b-0 border-gray-200 last:border-b-0 odd:border-r md:border-r-0">
                 <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg ${obj.bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${obj.color}`} />
                 </div>
@@ -369,10 +371,10 @@ export function Overview() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.05 }}
       >
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden flex flex-col md:flex-row shadow-sm">
+        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col md:flex-row shadow-sm">
           <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-center">
             <div className="flex items-center gap-2 mb-3">
-              <span className="text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-md" style={{ fontWeight: 600 }}>Alocação de Verba</span>
+              <span className="text-[10px] uppercase tracking-widest text-gray-400 bg-gray-50 border border-gray-200 px-2.5 py-1 rounded-md" style={{ fontWeight: 600 }}>Alocação de Verba</span>
             </div>
             <h2 className="text-2xl text-gray-900 mb-4" style={{ fontWeight: 600, letterSpacing: '-0.01em' }}>Distribuição do Orçamento</h2>
             <p className="text-gray-500 text-sm leading-relaxed mb-8">
@@ -404,8 +406,8 @@ export function Overview() {
             </div>
           </div>
           
-          <div className="bg-slate-50 md:w-1/2 p-6 md:p-8 border-t md:border-t-0 md:border-l border-gray-100 flex items-center justify-center relative">
-            <div className="absolute top-4 right-4 bg-white border border-gray-100 shadow-sm rounded-lg p-2.5 md:p-3 text-center">
+          <div className="bg-slate-50 md:w-1/2 p-6 md:p-8 border-t md:border-t-0 md:border-l border-gray-200 flex items-center justify-center relative">
+            <div className="absolute top-4 right-4 bg-white border border-gray-200 shadow-sm rounded-lg p-2.5 md:p-3 text-center">
                <p className="text-[10px] uppercase tracking-wide text-gray-400 mb-1" style={{ fontWeight: 600 }}>Investimento Mensal</p>
                <p className="text-base md:text-lg text-gray-900" style={{ fontWeight: 700 }}>R$ {totalBudget.toLocaleString("pt-BR")}</p>
             </div>
@@ -454,7 +456,7 @@ export function Overview() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.22 }}
-          className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-5"
+          className="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5"
         >
           <div className="flex items-center gap-2 mb-4">
             <span className="text-lg">🌐</span>
@@ -504,7 +506,7 @@ export function Overview() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.35, delay: 0.15 + i * 0.08 }}
-              className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden hover:shadow-sm hover:border-gray-200 transition-all group"
+              className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden hover:shadow-sm hover:border-gray-200 transition-all group"
             >
               {/* Top accent */}
               <div className={`h-1.5 w-full flex-shrink-0 ${stage.color} opacity-80 group-hover:opacity-100 transition-opacity`} />
@@ -537,7 +539,7 @@ export function Overview() {
           <ChevronDown className="w-5 h-5 text-gray-300" />
         </div>
         <div className="flex justify-center">
-          <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm px-4 py-2 rounded-full flex items-center gap-2" style={{ fontWeight: 500 }}>
+          <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm px-4 py-2 rounded-full flex items-center gap-2" style={{ fontWeight: 500 }}>
             <CheckCircle2 className="w-4 h-4" />
             Conversão & Resultado
           </div>
@@ -566,7 +568,7 @@ export function Overview() {
           {channels.map((ch) => (
             <div
               key={ch.path}
-              className="bg-white rounded-xl border border-gray-100 p-6 flex flex-col hover:shadow-sm hover:border-gray-200 transition-all"
+              className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col hover:shadow-sm hover:border-gray-300 transition-all"
             >
               <div className="flex items-center gap-3 mb-4">
                 {ch.logo}
@@ -589,7 +591,7 @@ export function Overview() {
 
               <Link
                 to={ch.path}
-                className="flex items-center justify-between w-full bg-gray-50 hover:bg-blue-600 border border-gray-100 hover:border-blue-600 text-gray-700 hover:text-white px-4 py-2.5 rounded-lg transition-all group"
+                className="flex items-center justify-between w-full bg-gray-50 hover:bg-blue-600 border border-gray-200 hover:border-blue-600 text-gray-700 hover:text-white px-4 py-2.5 rounded-lg transition-all group"
               >
                 <span className="text-sm" style={{ fontWeight: 500 }}>Ver estratégia completa</span>
                 <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />

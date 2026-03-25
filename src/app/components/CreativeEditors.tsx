@@ -28,11 +28,10 @@ import type {
   MetaCarouselCard,
 } from "../data/types";
 
+import { uid } from "../utils/uid";
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function uid() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-}
 
 // ─── Inline editable field ────────────────────────────────────────────────────
 
@@ -159,7 +158,9 @@ export function MetaCreativeEditor({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onRemove();
+                if (window.confirm("Deseja realmente remover este criativo?")) {
+                  onRemove();
+                }
               }}
               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
             >
@@ -182,7 +183,7 @@ export function MetaCreativeEditor({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className={`px-5 pb-5 space-y-4 ${collapsible ? 'border-t border-slate-100 pt-4' : ''}`}>
+            <div className={`px-5 pb-5 space-y-4 ${collapsible ? 'border-t border-slate-200 pt-4' : ''}`}>
               <Field
                 label="Nome do Criativo"
                 value={creative.name}
@@ -202,7 +203,7 @@ export function MetaCreativeEditor({
                       className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
                         creative.primaryPlacement === p
                           ? "bg-blue-50 text-blue-600 border-blue-200"
-                          : "border-slate-100 text-slate-400 hover:bg-slate-50"
+                          : "border-slate-200 text-slate-400 hover:bg-slate-50"
                       }`}
                     >
                       {p}
@@ -342,7 +343,7 @@ export function MetaCreativeEditor({
               </div>
 
               {creative.format === "Carousel" && (
-                <div className="pt-4 border-t border-slate-100 space-y-4">
+                <div className="pt-4 border-t border-slate-200 space-y-4">
                   <div className="flex items-center justify-between">
                     <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
                       Cards do Carrossel (mín. 2)
@@ -368,7 +369,7 @@ export function MetaCreativeEditor({
                   </div>
                   <div className="space-y-3">
                     {(creative.carouselCards || []).map((card, idx) => (
-                      <div key={card.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50 space-y-3">
+                      <div key={card.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-slate-400">#0{idx + 1}</span>
                           <button
@@ -426,7 +427,7 @@ export function MetaCreativeEditor({
                       </div>
                     ))}
                     {(creative.carouselCards?.length || 0) === 0 && (
-                      <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-2xl">
+                      <div className="text-center py-8 border-2 border-dashed border-slate-200 rounded-2xl">
                         <p className="text-xs text-slate-400 font-medium">Adicione cards para configurar seu carrossel.</p>
                       </div>
                     )}
@@ -578,7 +579,9 @@ export function GoogleCreativeEditor({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onRemove();
+                if (window.confirm("Deseja realmente remover este criativo?")) {
+                  onRemove();
+                }
               }}
               className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
             >
@@ -600,7 +603,7 @@ export function GoogleCreativeEditor({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className={`px-5 pb-5 space-y-4 ${collapsible ? 'border-t border-slate-100 pt-4' : ''}`}>
+            <div className={`px-5 pb-5 space-y-4 ${collapsible ? 'border-t border-slate-200 pt-4' : ''}`}>
               <Field
                 label="Nome do Criativo"
                 value={creative.name}
@@ -622,7 +625,7 @@ export function GoogleCreativeEditor({
                       className={`px-4 py-2.5 rounded-xl text-xs font-bold border transition-all ${
                         creative.format === f
                           ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                          : "border-slate-100 text-slate-400 hover:bg-slate-50"
+                          : "border-slate-200 text-slate-400 hover:bg-slate-50"
                       }`}
                     >
                       {f}
@@ -802,9 +805,9 @@ export function GoogleCreativeEditor({
                           initial={{ opacity: 0, scale: 0.95, y: 20 }}
                           animate={{ opacity: 1, scale: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                          className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
+                          className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
                         >
-                          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+                          <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                               <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
                                 <Library className="w-4 h-4" />
@@ -934,7 +937,7 @@ export function GoogleCreativeEditor({
                       )}
                     </div>
 
-                    <div className="pt-4 border-t border-slate-100 grid grid-cols-2 gap-4">
+                    <div className="pt-4 border-t border-slate-200 grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Imagens (URLs)</label>
                         {(creative.images ?? []).map((img, i) => (
