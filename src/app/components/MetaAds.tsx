@@ -85,7 +85,7 @@ function EmptyState({ step }: { step: FunnelStep }) {
 
 export function MetaAds() {
   const { campaignId } = useParams();
-  const { getActiveCampaign, getCampaign, getClient, updateCampaign } = useStore();
+  const { getActiveCampaign, getCampaign, getClient, updateCampaign, isAuthenticated } = useStore();
   const campaign = campaignId ? getCampaign(campaignId) : getActiveCampaign();
   const client = campaign ? getClient(campaign.clientId) : undefined;
   const companyName = client?.company;
@@ -305,11 +305,11 @@ export function MetaAds() {
       <CreativeModal
         creative={selectedCreative}
         onClose={() => setSelectedCreative(null)}
-        onSave={handleSaveCreative}
+        onSave={isAuthenticated ? handleSaveCreative : undefined}
         companyName={companyName}
         companyUrl={companyUrl}
         companyLogo={companyLogo}
-        readOnly={!!campaignId}
+        readOnly={!isAuthenticated}
       />
     </div>
   );
