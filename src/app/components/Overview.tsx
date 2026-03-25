@@ -1,5 +1,6 @@
 import { Link, useParams } from "react-router";
 import { motion } from "motion/react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import {
   ArrowRight,
   Target,
@@ -81,15 +82,98 @@ function FlowLine({ color, delay = 0, duration = 3 }: { color: string; delay?: n
   );
 }
 
-function MediaFlowMap() {
+function MediaFlowMap({ campaign }: { campaign: any }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [paths, setPaths] = useState<{ d: string; color: string; key: string }[]>([]);
+
+  const metaOn   = campaign?.budgetAllocation?.metaEnabled   !== false;
+  const googleOn = campaign?.budgetAllocation?.googleEnabled !== false;
+
+  const sources = campaign ? [
+    metaOn   && { name: "Meta Ads",   icon: Share2, color: "text-pink-500",    bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899" },
+    googleOn && { name: "Google Ads", icon: Globe,  color: "text-blue-500",    bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6" },
+  ].filter(Boolean) : [
+    { name: "Meta Ads",   icon: Share2, color: "text-pink-500",    bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899" },
+    { name: "Google Ads", icon: Globe,  color: "text-blue-500",    bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6" },
+    { name: "Orgânico",   icon: Users,  color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200", hex: "#10b981" },
+  ] as any[];
+
+  const allAudiences: { name: string; channel: string; hex: string }[] = [];
+  if (campaign) {
+    (["top", "middle", "bottom"] as const).forEach(st => {
+      (campaign.meta?.[st]   || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "meta",   hex: "#ec4899" }));
+      (campaign.google?.[st] || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "google", hex: "#3b82f6" }));
+    });
+  }
+  const audiences = allAudiences.slice(0, 6);
+
+  const destinations: any[] = campaign?.destinations?.length
+    ? campaign.destinations
+    : [{ id: "default", label: "Conversão", event: "Venda ou Lead" }];
+
+  const calcPaths = useCallback(() => {
+    const wrap = containerRef.current;
+    if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const get = (id: string) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { cx: r.left + r.width / 2 - rect.left, cy: r.top + r.height / 2 - rect.top, right: r.right - rect.left, left: r.left - rect.left };
+    };
+
+    const newPaths: typeof paths = [];
+
+    // Cada canal → cada público
+    sources.forEach((src: any, si: number) => {
+      const s = get(`flow-src-${si}`);
+      audiences.forEach((aud: any, ai: number) => {
+        const e = get(`flow-aud-${ai}`);
+        if (!s || !e) return;
+        // Only connect each source to audiences of its own channel (or all if no channel)
+        if (aud.channel && src.name === "Meta Ads" && aud.channel !== "meta") return;
+        if (aud.channel && src.name === "Google Ads" && aud.channel !== "google") return;
+        const mx = s.right + (e.left - s.right) / 2;
+        newPaths.push({
+          key: `src${si}-aud${ai}`,
+          color: src.hex,
+          d: `M${s.right},${s.cy} C${mx},${s.cy} ${mx},${e.cy} ${e.left},${e.cy}`,
+        });
+      });
+    });
+
+    // Cada público → cada destino
+    audiences.forEach((aud: any, ai: number) => {
+      const s = get(`flow-aud-${ai}`);
+      destinations.forEach((_: any, di: number) => {
+        const e = get(`flow-dest-${di}`);
+        if (!s || !e) return;
+        const mx = s.right + (e.left - s.right) / 2;
+        newPaths.push({
+          key: `aud${ai}-dest${di}`,
+          color: aud.hex ?? "#10b981",
+          d: `M${s.right},${s.cy} C${mx},${s.cy} ${mx},${e.cy} ${e.left},${e.cy}`,
+        });
+      });
+    });
+
+    setPaths(newPaths);
+  }, [sources, audiences, destinations]);
+
+  useEffect(() => {
+    const t = setTimeout(calcPaths, 80);
+    window.addEventListener("resize", calcPaths);
+    return () => { clearTimeout(t); window.removeEventListener("resize", calcPaths); };
+  }, [calcPaths]);
+
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.08 }}
       className="bg-white rounded-2xl border border-gray-200 p-8 relative overflow-hidden shadow-sm"
     >
-      <div className="flex items-center justify-between mb-10 relative z-20">
+      <div className="flex items-center justify-between mb-8 relative z-20">
         <div>
           <h3 className="text-gray-900 flex items-center gap-2" style={{ fontWeight: 700, fontSize: "1.1rem" }}>
             <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
@@ -97,103 +181,160 @@ function MediaFlowMap() {
           </h3>
           <p className="text-sm text-gray-400">Visualização da jornada do tráfego e ecossistema de conversão</p>
         </div>
-        <div className="flex gap-2">
-          <span className="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full border border-emerald-200 font-medium">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             Fluxo em Tempo Real
-          </span>
-        </div>
+        <span className="flex items-center gap-1.5 text-[10px] bg-emerald-50 text-emerald-600 px-2 py-1 rounded-full border border-emerald-200 font-medium">
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          {campaign ? "Dados da Campanha" : "Fluxo Padrão"}
+        </span>
       </div>
 
-      <div className="relative flex flex-col md:flex-row items-center justify-between gap-12 md:gap-0 lg:px-10 pb-4">
-        
-        {/* Sources */}
-        <div className="flex flex-col gap-6 relative z-20 w-full md:w-auto">
-          {[
-            { name: "Meta Ads", icon: Share2, color: "text-pink-500", bg: "bg-pink-50", border: "border-pink-200" },
-            { name: "Google Ads", icon: Globe, color: "text-blue-500", bg: "bg-blue-50", border: "border-blue-200" },
-            { name: "Orgânico", icon: Users, color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200" },
-          ].map((source, i) => (
+      {/* Layout */}
+      <div ref={containerRef} className="relative hidden md:flex items-center justify-between gap-4 pb-4 min-h-[160px]">
+
+        {/* SVG de conexões */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
+          <defs>
+            <filter id="glow-soft" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          {paths.map((p, i) => {
+            const staggerDelay = (i * 0.22) % 2.8;
+            return (
+              <g key={p.key}>
+                {/* Track line */}
+                <path d={p.d} fill="none" stroke={p.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.45" />
+                {/* Tail — long, faint */}
+                <motion.path
+                  d={p.d}
+                  fill="none"
+                  stroke={p.color}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  pathLength={1}
+                  strokeDasharray="0.28 1"
+                  initial={{ strokeDashoffset: 1.28 }}
+                  animate={{ strokeDashoffset: -0.72 }}
+                  transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: staggerDelay,
+                    repeatDelay: 0.4,
+                  }}
+                  opacity={0.3}
+                />
+                {/* Head — short, bright, glowing */}
+                <motion.path
+                  d={p.d}
+                  fill="none"
+                  stroke={p.color}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  pathLength={1}
+                  strokeDasharray="0.08 1"
+                  initial={{ strokeDashoffset: 1.08 }}
+                  animate={{ strokeDashoffset: -0.92 }}
+                  filter="url(#glow-soft)"
+                  transition={{
+                    duration: 2.2,
+                    repeat: Infinity,
+                    ease: "linear",
+                    delay: staggerDelay,
+                    repeatDelay: 0.4,
+                  }}
+                  opacity={0.95}
+                />
+              </g>
+            );
+          })}
+        </svg>
+
+        {/* CANAIS */}
+        <div className="flex flex-col gap-3 z-10 shrink-0">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Canais</p>
+          {sources.map((src: any, i: number) => (
             <motion.div
-              key={source.name}
-              initial={{ opacity: 0, x: -20 }}
+              id={`flow-src-${i}`}
+              key={src.name}
+              initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className={`${source.bg} ${source.border} border rounded-xl p-4 flex items-center gap-4 w-full md:w-48 shadow-sm relative group`}
+              transition={{ delay: i * 0.08 }}
+              className={`${src.bg} ${src.border} border rounded-xl px-4 py-3 flex items-center gap-3 w-40 shadow-sm`}
             >
-              <div className={`w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm ${source.color}`}>
-                <source.icon className="w-5 h-5" />
+              <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm ${src.color}`}>
+                <src.icon className="w-4 h-4" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">{source.name}</span>
-              
-              {/* Animated line connector to Landing Page */}
-              <div className="hidden md:block absolute left-full top-1/2 w-24 lg:w-32 h-[1px] bg-gradient-to-r from-gray-200 to-transparent transform -translate-y-1/2 pointer-events-none">
-                 <FlowLine color={i === 0 ? "bg-pink-400" : i === 1 ? "bg-blue-400" : "bg-emerald-400"} delay={i * 0.8} />
-              </div>
+              <span className="text-sm font-semibold text-gray-700">{src.name}</span>
             </motion.div>
           ))}
         </div>
 
-        {/* Center: Landing Page */}
-        <div className="relative z-20">
-          <motion.div
-            animate={{ y: [0, -5, 0] }}
-            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="w-48 h-48 lg:w-56 lg:h-56 rounded-3xl bg-white border border-gray-200 shadow-xl flex flex-col items-center justify-center p-6 relative"
-          >
-            <div className="absolute inset-0 bg-blue-50/30 rounded-3xl blur-2xl -z-10" />
-            <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mb-4 shadow-lg shadow-blue-200">
-               <Layers className="w-8 h-8 text-white" />
+        {/* PÚBLICOS */}
+        <div className="flex flex-col gap-2 z-10 shrink-0">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Públicos</p>
+          {audiences.length > 0 ? audiences.map((aud: any, i: number) => (
+            <motion.div
+              id={`flow-aud-${i}`}
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.05 }}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm w-44 ${
+                aud.channel === "meta" ? "bg-blue-50 border-blue-100" : "bg-emerald-50 border-emerald-100"
+              }`}
+            >
+              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${aud.channel === "meta" ? "bg-blue-400" : "bg-emerald-400"}`} />
+              <span className="text-[11px] font-semibold text-gray-700 truncate">{aud.name}</span>
+            </motion.div>
+          )) : (
+            <div id="flow-aud-0" className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-gray-300 w-44">
+              <Users className="w-3.5 h-3.5" />
+              <span className="text-[11px]">Sem públicos</span>
             </div>
-            <p className="text-gray-900 font-bold text-center leading-tight">Landing Page<br/><span className="text-blue-600 text-xs font-medium">Página de Destino</span></p>
-            
-            {/* Conversion Path Connector */}
-            <div className="hidden md:block absolute left-full top-1/2 w-24 h-[1px] bg-gradient-to-r from-blue-200 to-transparent transform -translate-y-1/2">
-                <FlowLine color="bg-blue-600" duration={2} />
-            </div>
-          </motion.div>
+          )}
         </div>
 
-        {/* Destination: Conversion */}
-        <div className="flex flex-col gap-8 relative z-20 w-full md:w-auto">
-           <motion.div
-             whileHover={{ scale: 1.05 }}
-             className="bg-emerald-600 rounded-2xl p-6 text-white text-center w-full md:w-48 shadow-lg shadow-emerald-100 relative group"
-           >
-              <Target className="w-10 h-10 mx-auto mb-2 text-emerald-100" />
-              <p className="font-bold text-lg">Conversão</p>
-              <p className="text-[10px] text-emerald-100 uppercase tracking-widest font-medium">Venda ou Lead</p>
-              
-              {/* Success Burst */}
+        {/* DESTINOS */}
+        <div className="flex flex-col gap-3 z-10 shrink-0">
+          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Destinos</p>
+          {destinations.map((dest: any, i: number) => (
+            <motion.div
+              id={`flow-dest-${i}`}
+              key={dest.id}
+              initial={{ opacity: 0, x: 16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.2 + i * 0.08 }}
+              whileHover={{ scale: 1.03 }}
+              className="bg-emerald-600 rounded-xl px-4 py-3 text-white w-44 shadow-lg shadow-emerald-100 relative overflow-hidden"
+            >
+              <Target className="w-5 h-5 mb-1 text-emerald-200" />
+              <p className="font-bold text-sm leading-tight">{dest.label}</p>
+              {dest.event && <p className="text-[9px] text-emerald-200 uppercase tracking-widest mt-0.5">{dest.event}</p>}
+              {dest.url && <p className="text-[8px] text-emerald-300 font-mono mt-1 truncate">{dest.url.replace(/^https?:\/\//, "")}</p>}
               <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.1, 0.3] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="absolute inset-0 bg-emerald-400 rounded-2xl -z-10 blur-xl"
+                animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.05, 0.2] }}
+                transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.5 }}
+                className="absolute inset-0 bg-emerald-300 -z-10 blur-xl"
               />
-           </motion.div>
-
-           {/* Remarketing Loop */}
-           <motion.div
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             transition={{ delay: 1 }}
-             className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center gap-2 w-full md:w-48 shadow-sm relative overflow-hidden group"
-           >
-              <div className="flex items-center gap-2 text-violet-600">
-                 <RefreshCw className="w-4 h-4 animate-spin-slow" />
-                 <span className="text-xs font-bold uppercase tracking-tight">Remarketing</span>
-              </div>
-              <p className="text-[11px] text-gray-500 text-center leading-tight px-2">Recuperação de 70-80% do tráfego que não converteu.</p>
-              
-              {/* Return line back to sources (symbolic) */}
-              <div className="absolute bottom-0 left-0 w-full h-1 bg-violet-100" />
-           </motion.div>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Background Visual Grid (Static) */}
-        <div className="absolute inset-0 flex items-center justify-center -z-10 opacity-[0.03]">
-          <div className="w-full h-full" style={{ backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-        </div>
+        {/* Dot grid background */}
+        <div className="absolute inset-0 -z-10 opacity-[0.03]"
+          style={{ backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
+      </div>
+
+      {/* Mobile: lista simples */}
+      <div className="md:hidden flex flex-col gap-3 text-sm text-gray-500">
+        <div className="flex flex-wrap gap-2">{sources.map((s: any) => <span key={s.name} className={`${s.bg} ${s.border} border px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700`}>{s.name}</span>)}</div>
+        <div className="flex flex-wrap gap-2">{audiences.map((a: any, i: number) => <span key={i} className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 truncate max-w-[160px]">{a.name}</span>)}</div>
+        <div className="flex flex-wrap gap-2">{destinations.map((d: any) => <span key={d.id} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">{d.label}</span>)}</div>
       </div>
     </motion.div>
   );
@@ -546,7 +687,7 @@ export function Overview() {
         </div>
       </motion.div>
 
-<MediaFlowMap />
+<MediaFlowMap campaign={campaign} />
 
       {/* Channels */}
       <motion.div

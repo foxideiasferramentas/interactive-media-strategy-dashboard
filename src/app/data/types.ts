@@ -23,6 +23,7 @@ export interface MetaCreative {
   imageFocalPoints?: Record<string, { x: number; y: number }>;
   images?: string[];
   videos?: string[];
+  destinationIds?: string[];
 }
 
 export interface Sitelink {
@@ -50,6 +51,7 @@ export interface GoogleCreative {
   businessName?: string;
   finalUrl?: string;
   imageFocalPoints?: Record<string, { x: number; y: number }>;
+  destinationIds?: string[];
 }
 
 // ─── Sitelink Library ─────────────────────────────────────────────────────────
@@ -113,12 +115,21 @@ export interface FunnelStage {
 
 // ─── Campaign ─────────────────────────────────────────────────────────────────
 
+export interface ConversionDestination {
+  id: string;
+  label: string;
+  url: string;
+  event?: string; // ex: "Purchase", "Lead", "ViewContent"
+  note?: string;
+}
+
 export interface Campaign {
   id: string;
   name: string;
   clientId: string;
   status: "active" | "paused" | "planning";
   budget: number;
+  destinations?: ConversionDestination[];
   budgetAllocation: {
     metaPercent: number;
     googlePercent: number;

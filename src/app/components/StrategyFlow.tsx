@@ -24,8 +24,13 @@ import {
   Bookmark,
   Book,
   Copy,
+  Link2,
+  ExternalLink,
+  Zap,
+  Pencil,
+  Check,
 } from "lucide-react";
-import { Campaign, StageKey, MetaCreative, GoogleCreative, SavedAudience } from "../data/types";
+import { Campaign, StageKey, MetaCreative, GoogleCreative, SavedAudience, ConversionDestination } from "../data/types";
 import { MetaCreativeEditor, GoogleCreativeEditor, Field } from "./CreativeEditors";
 import { useIsMobile } from "./ui/use-mobile";
 import { useStore } from "../data/store";
@@ -77,6 +82,12 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const [draggingCreative, setDraggingCreative]   = useState<{ creativeId: string; fromAudienceId: string; channel: "meta"|"google"; stage: StageKey } | null>(null);
   const [creativeDropTarget, setCreativeDropTarget] = useState<string | null>(null); // audienceId alvo
   const draggingCreativeRef = useRef<{ creativeId: string; fromAudienceId: string } | null>(null);
+
+  // Drag de conexão criativo → destino
+  const [connectingFrom, setConnectingFrom] = useState<{ creativeId: string; audienceId: string; channel: "meta"|"google"; stage: StageKey } | null>(null);
+  const [connectingLine, setConnectingLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
+  const connectingFromRef = useRef<typeof connectingFrom>(null);
 
   // Painel lateral
   const [panelAudience, setPanelAudience] = useState<{ id: string; channel: "meta"|"google"; stage: StageKey } | null>(null);
@@ -158,6 +169,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
       const target = e.target as HTMLElement;
       if (target.closest("button, input, a")) return;
       if (target.closest("[data-draggable]")) return;
+      if (target.closest("[data-connect-handle]")) return;
       isPanning.current = true;
       didPan.current    = false;
       panStart.current  = { x: e.clientX, y: e.clientY };
@@ -270,6 +282,13 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
             const cs = getCenter(`node-aud-${a.id}`, "right");
             const ce = getCenter(`node-cr-${cr.id}`, "left");
             if (cs && ce) newConns.push({ start: cs, end: ce, id: `aud-cr-${cr.id}`, color: ch === "meta" ? "#bfdbfe" : "#a7f3d0" });
+
+            // Conexões criativo → destinos (somente os explicitamente vinculados)
+            (cr.destinationIds || []).forEach((destId: string) => {
+              const ds = getCenter(`node-cr-${cr.id}`, "right");
+              const de = getCenter(`node-dest-${destId}`, "left");
+              if (ds && de) newConns.push({ start: ds, end: de, id: `cr-dest-${cr.id}-${destId}`, color: "#fcd34d", dashed: true });
+            });
           });
         });
       });
@@ -496,10 +515,101 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const [showCreativeForm, setShowCreativeForm] = useState(false);
 
   // Fecha o formulário quando o painel troca de público
-  useEffect(() => { 
-    setShowCreativeForm(false); 
+  useEffect(() => {
+    setShowCreativeForm(false);
     setEditingCreativeId(null);
   }, [panelAudience?.id]);
+
+  // ── Destinos de conversão ────────────────────────────────────────────
+  const destinations: ConversionDestination[] = campaign.destinations || [];
+
+  const addDestination = useCallback(() => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    if (!clone.destinations) clone.destinations = [];
+    clone.destinations.push({ id: uid(), label: "Novo Destino", url: "", event: "", note: "" });
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
+  const updateDestination = useCallback((id: string, data: Partial<ConversionDestination>) => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    if (!clone.destinations) return;
+    const idx = clone.destinations.findIndex(d => d.id === id);
+    if (idx !== -1) clone.destinations[idx] = { ...clone.destinations[idx], ...data };
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
+  const deleteDestination = useCallback((id: string) => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    if (!clone.destinations) return;
+    clone.destinations = clone.destinations.filter(d => d.id !== id);
+    // Remove também os vínculos nos criativos
+    (["top","middle","bottom"] as StageKey[]).forEach(st => {
+      [...clone.meta[st], ...clone.google[st]].forEach((a: any) => {
+        a.creatives?.forEach((cr: any) => {
+          if (cr.destinationIds) cr.destinationIds = cr.destinationIds.filter((did: string) => did !== id);
+        });
+      });
+    });
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
+  const toggleCreativeDestination = useCallback((
+    creativeId: string, audienceId: string, channel: "meta"|"google", stage: StageKey, destId: string
+  ) => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    const aud = (clone[channel][stage] as any[]).find((a: any) => a.id === audienceId);
+    if (!aud) return;
+    const cr = aud.creatives.find((c: any) => c.id === creativeId);
+    if (!cr) return;
+    if (!cr.destinationIds) cr.destinationIds = [];
+    const idx = cr.destinationIds.indexOf(destId);
+    if (idx === -1) cr.destinationIds.push(destId);
+    else cr.destinationIds.splice(idx, 1);
+    pushUpdate(clone);
+    setTimeout(calculatePaths, 50);
+  }, [campaign, pushUpdate, calculatePaths]);
+
+  // Handler global para o drag de conexão criativo → destino
+  useEffect(() => {
+    const onMove = (e: PointerEvent) => {
+      if (!connectingFromRef.current) return;
+      const container = containerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const srcEl = document.getElementById(`node-cr-${connectingFromRef.current.creativeId}`);
+      if (!srcEl) return;
+      const srcRect = srcEl.getBoundingClientRect();
+      setConnectingLine({
+        x1: srcRect.right - rect.left,
+        y1: srcRect.top + srcRect.height / 2 - rect.top,
+        x2: e.clientX - rect.left,
+        y2: e.clientY - rect.top,
+      });
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const destNode = el?.closest("[data-dest-id]") as HTMLElement | null;
+      setHoveredDestId(destNode?.dataset.destId ?? null);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!connectingFromRef.current) return;
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const destNode = el?.closest("[data-dest-id]") as HTMLElement | null;
+      const destId = destNode?.dataset.destId;
+      if (destId) {
+        const { creativeId, audienceId, channel, stage } = connectingFromRef.current;
+        toggleCreativeDestination(creativeId, audienceId, channel, stage, destId);
+      }
+      connectingFromRef.current = null;
+      setConnectingFrom(null);
+      setConnectingLine(null);
+      setHoveredDestId(null);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    return () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+    };
+  }, [toggleCreativeDestination]);
 
   const panelData = panelAudience ? findAudience(panelAudience.id) : null;
   const currentZoom = zoom.current;
@@ -564,7 +674,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
               ].join(" ");
               return (
                 <motion.path key={conn.id} d={path} fill="none" stroke={conn.color} strokeWidth="1.5" strokeLinecap="round"
-                  initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.4 }}
+                  strokeDasharray={conn.dashed ? "5 4" : undefined}
+                  initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: conn.dashed ? 0.5 : 0.4 }}
                   transition={{ duration: 0.5, ease: "easeInOut" }}
                 />
               );
@@ -736,6 +847,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                 <div className="flex flex-col" style={{ gap: 6 }}>
                                   {aud.creatives.map((cr: any) => (
                                     <CreativeNode key={cr.id} creative={cr} audienceId={aud.id} channel="meta"
+                                      destinations={destinations}
+                                      onStartConnect={(e) => { connectingFromRef.current = { creativeId: cr.id, audienceId: aud.id, channel: "meta", stage: stageKey }; setConnectingFrom({ creativeId: cr.id, audienceId: aud.id, channel: "meta", stage: stageKey }); }}
                                       onDuplicate={() => duplicateCreative(cr.id, aud.id, "meta", stageKey)}
                                       onDelete={() => deleteCreative(cr.id, aud.id, "meta", stageKey)}
                                       onDragStart={() => { draggingCreativeRef.current = { creativeId: cr.id, fromAudienceId: aud.id }; setDraggingCreative({ creativeId: cr.id, fromAudienceId: aud.id, channel: "meta", stage: stageKey }); }}
@@ -801,6 +914,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                 <div className="flex flex-col" style={{ gap: 6 }}>
                                   {aud.creatives.map((cr: any) => (
                                     <CreativeNode key={cr.id} creative={cr} audienceId={aud.id} channel="google"
+                                      destinations={destinations}
+                                      onStartConnect={(e) => { connectingFromRef.current = { creativeId: cr.id, audienceId: aud.id, channel: "google", stage: stageKey }; setConnectingFrom({ creativeId: cr.id, audienceId: aud.id, channel: "google", stage: stageKey }); }}
                                       onDuplicate={() => duplicateCreative(cr.id, aud.id, "google", stageKey)}
                                       onDelete={() => deleteCreative(cr.id, aud.id, "google", stageKey)}
                                       onDragStart={() => { draggingCreativeRef.current = { creativeId: cr.id, fromAudienceId: aud.id }; setDraggingCreative({ creativeId: cr.id, fromAudienceId: aud.id, channel: "google", stage: stageKey }); }}
@@ -839,8 +954,60 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                 );
               })}
             </div>
+            {/* COLUNA 3: DESTINOS */}
+            {destinations.length > 0 && (
+              <div className="flex flex-col justify-center pt-20" style={{ gap: 16 }}>
+                <div className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-1 text-center">Destinos</div>
+                {destinations.map(dest => (
+                  <div
+                    key={dest.id}
+                    id={`node-dest-${dest.id}`}
+                    data-dest-id={dest.id}
+                    className={`w-36 p-3 rounded-2xl shadow-sm border-2 transition-all ${
+                      hoveredDestId === dest.id
+                        ? "bg-amber-100 border-amber-400 scale-105"
+                        : "bg-amber-50 border-amber-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <div className="w-5 h-5 rounded-lg bg-amber-400 flex items-center justify-center shrink-0">
+                        <Link2 className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-[11px] font-bold text-amber-900 truncate">{dest.label || "Sem título"}</span>
+                    </div>
+                    {dest.event && (
+                      <div className="flex items-center gap-1 mb-1">
+                        <Zap className="w-2.5 h-2.5 text-amber-400" />
+                        <span className="text-[9px] font-bold text-amber-600">{dest.event}</span>
+                      </div>
+                    )}
+                    {dest.url && (
+                      <p className="text-[8px] text-amber-500 truncate font-mono">{dest.url.replace(/^https?:\/\//, "")}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
           </div>
         </div>
+
+        {/* Linha temporária de conexão */}
+        {connectingLine && (
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-50 overflow-visible">
+            <defs>
+              <marker id="arrow-tmp" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
+              </marker>
+            </defs>
+            <line
+              x1={connectingLine.x1} y1={connectingLine.y1}
+              x2={connectingLine.x2} y2={connectingLine.y2}
+              stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 4"
+              markerEnd="url(#arrow-tmp)"
+            />
+          </svg>
+        )}
 
         {/* Botão Desfazer */}
         <AnimatePresence>
@@ -1080,6 +1247,156 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── PAINEL DE DESTINOS ─────────────────────────────────────────────── */}
+      <DestinationsPanel
+        destinations={destinations}
+        onAdd={addDestination}
+        onUpdate={updateDestination}
+        onDelete={deleteDestination}
+      />
+    </div>
+  );
+}
+
+// ── Painel de Destinos ────────────────────────────────────────────────────
+
+function DestinationsPanel({ destinations, onAdd, onUpdate, onDelete }: {
+  destinations: ConversionDestination[];
+  onAdd: () => void;
+  onUpdate: (id: string, data: Partial<ConversionDestination>) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  return (
+    <div className="flex-shrink-0 w-[240px] border-l border-slate-200 bg-slate-50/50 flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-lg bg-amber-400 flex items-center justify-center">
+            <Link2 className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Destinos</span>
+        </div>
+        <button
+          onClick={onAdd}
+          className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 hover:bg-amber-100 transition-colors"
+          title="Adicionar destino"
+        >
+          <Plus className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Lista */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+        {destinations.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 text-center">
+            <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-3">
+              <Link2 className="w-5 h-5 text-amber-200" />
+            </div>
+            <p className="text-[10px] text-slate-300 font-medium">Nenhum destino</p>
+            <p className="text-[9px] text-slate-200 mt-1">Clique em + para adicionar</p>
+          </div>
+        )}
+
+        {destinations.map(dest => {
+          const isEditing = editingId === dest.id;
+          return (
+            <div key={dest.id} className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${isEditing ? "border-amber-300" : "border-slate-200"}`}>
+              {/* Cabeçalho do card */}
+              <div className="flex items-center gap-2 px-3 py-2.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="flex-1 text-[11px] font-bold text-slate-800 truncate">{dest.label || "Sem título"}</span>
+                <button
+                  onClick={() => setEditingId(isEditing ? null : dest.id)}
+                  className={`p-1 rounded-lg transition-colors ${isEditing ? "bg-amber-500 text-white" : "text-slate-300 hover:text-amber-500 hover:bg-amber-50"}`}
+                >
+                  {isEditing ? <Check className="w-3 h-3" /> : <Pencil className="w-3 h-3" />}
+                </button>
+                <button
+                  onClick={() => onDelete(dest.id)}
+                  className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Formulário de edição */}
+              {isEditing && (
+                <div className="px-3 pb-3 space-y-2 border-t border-amber-100 pt-2">
+                  <div>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Nome</label>
+                    <input
+                      value={dest.label}
+                      onChange={e => onUpdate(dest.id, { label: e.target.value })}
+                      className="w-full text-[11px] font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
+                      placeholder="Ex: Página de obrigado"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">URL de destino</label>
+                    <input
+                      value={dest.url}
+                      onChange={e => onUpdate(dest.id, { url: e.target.value })}
+                      className="w-full text-[10px] font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
+                      placeholder="https://site.com/obrigado"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Evento de conversão</label>
+                    <input
+                      value={dest.event || ""}
+                      onChange={e => onUpdate(dest.id, { event: e.target.value })}
+                      className="w-full text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
+                      placeholder="Ex: Purchase, Lead"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Observação</label>
+                    <textarea
+                      value={dest.note || ""}
+                      onChange={e => onUpdate(dest.id, { note: e.target.value })}
+                      rows={2}
+                      className="w-full text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5 resize-none"
+                      placeholder="Observações sobre este destino"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Preview resumido quando fechado */}
+              {!isEditing && (dest.url || dest.event) && (
+                <div className="px-3 pb-2.5 space-y-1">
+                  {dest.event && (
+                    <div className="flex items-center gap-1">
+                      <Zap className="w-2.5 h-2.5 text-amber-400" />
+                      <span className="text-[9px] font-bold text-amber-600">{dest.event}</span>
+                    </div>
+                  )}
+                  {dest.url && (
+                    <div className="flex items-center gap-1 group">
+                      <ExternalLink className="w-2.5 h-2.5 text-slate-300 shrink-0" />
+                      <a
+                        href={dest.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        className="text-[9px] text-slate-400 truncate font-mono hover:text-amber-600 hover:underline transition-colors"
+                      >
+                        {dest.url.replace(/^https?:\/\//, "")}
+                      </a>
+                    </div>
+                  )}
+                  {dest.note && (
+                    <p className="text-[9px] text-slate-400 italic line-clamp-2">{dest.note}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1217,41 +1534,62 @@ function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDro
   );
 }
 
-function CreativeNode({ creative, audienceId, channel, onDuplicate, onDelete, onDragStart, onDragEnd }: {
+function CreativeNode({ creative, audienceId, channel, destinations, onStartConnect, onDuplicate, onDelete, onDragStart, onDragEnd }: {
   creative: any; audienceId: string; channel: "meta" | "google";
+  destinations: ConversionDestination[];
+  onStartConnect: (e: React.PointerEvent) => void;
   onDuplicate: () => void; onDelete: () => void;
   onDragStart: () => void; onDragEnd: (e: any, info: any) => void;
 }) {
   const isGoogle = channel === "google";
   const accent = isGoogle ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-blue-600 bg-blue-50 border-blue-200";
+  const linkedIds: string[] = creative.destinationIds || [];
+  const hasLinks = linkedIds.length > 0;
+
   return (
-    <motion.div
-      id={`node-cr-${creative.id}`}
-      drag dragSnapToOrigin
-      data-draggable="true"
-      onDragStart={onDragStart}
-      onDragEnd={onDragEnd}
-      initial={{ opacity: 0, x: -6 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2 }}
-      whileDrag={{ scale: 1.08, zIndex: 100, boxShadow: "0 12px 20px -4px rgb(0 0 0 / 0.15)", opacity: 0.9 }}
-      className={`group flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${accent} shadow-sm cursor-grab active:cursor-grabbing`}
-      style={{ width: 152 }}
-    >
-      <div className="shrink-0 opacity-70">{creativeIcon(creative.format)}</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[9px] font-bold text-slate-700 truncate leading-none">{creative.name || creative.format}</p>
-        <p className="text-[8px] text-slate-400 mt-0.5 leading-none">{creative.format}</p>
-      </div>
-      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-300 hover:text-blue-400">
-          <Copy className="w-2 h-2" />
-        </button>
-        <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-300 hover:text-red-400">
-          <X className="w-2 h-2" />
-        </button>
-      </div>
-    </motion.div>
+    <div className="relative group/cr">
+      <motion.div
+        id={`node-cr-${creative.id}`}
+        drag dragSnapToOrigin
+        data-draggable="true"
+        onDragStart={onDragStart}
+        onDragEnd={onDragEnd}
+        initial={{ opacity: 0, x: -6 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.2 }}
+        whileDrag={{ scale: 1.08, zIndex: 100, boxShadow: "0 12px 20px -4px rgb(0 0 0 / 0.15)", opacity: 0.9 }}
+        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${accent} shadow-sm cursor-grab active:cursor-grabbing`}
+        style={{ width: 152 }}
+      >
+        <div className="shrink-0 opacity-70">{creativeIcon(creative.format)}</div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] font-bold text-slate-700 truncate leading-none">{creative.name || creative.format}</p>
+          <p className="text-[8px] text-slate-400 mt-0.5 leading-none">{creative.format}</p>
+        </div>
+        <div className="flex items-center gap-0.5 opacity-0 group-hover/cr:opacity-100 transition-opacity flex-shrink-0">
+          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-300 hover:text-blue-400">
+            <Copy className="w-2 h-2" />
+          </button>
+          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-300 hover:text-red-400">
+            <X className="w-2 h-2" />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Handle de conexão — aparece ao hover no lado direito */}
+      {destinations.length > 0 && (
+        <div
+          data-connect-handle="true"
+          onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onStartConnect(e); }}
+          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-[10px] w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-crosshair z-20 opacity-0 group-hover/cr:opacity-100 transition-all hover:scale-125 ${
+            hasLinks ? "bg-amber-400 border-amber-500" : "bg-white border-amber-400"
+          }`}
+          title="Arrastar para conectar a um destino"
+        >
+          <div className={`w-1.5 h-1.5 rounded-full ${hasLinks ? "bg-white" : "bg-amber-400"}`} />
+        </div>
+      )}
+    </div>
   );
 }
 
