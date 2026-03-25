@@ -29,3 +29,5 @@ backups/
 build_output.txt
 .claude/
 .gemini/
+
+.vercel
