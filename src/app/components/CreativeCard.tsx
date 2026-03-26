@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { Eye, ExternalLink, Globe, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { X, FileText, Pencil, Check, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, Globe, ExternalLink, Trash2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Creative } from "./CreativeModal";
 import type { MetaCarouselCard, MetaCreative } from "../data/types";
 import { getYouTubeId } from "../utils/youtube";
 import { normalizeMediaUrl, isDirectVideoUrl } from "../utils/media";
+export { PMAX_TABS } from "./creative/Previews";
+import { formatDisplayUrl, PMAX_TABS, type PMaxTabId as PMaxTab } from "./creative/Previews";
 
 interface CreativeCardProps {
   creative: Creative;
@@ -13,27 +15,15 @@ interface CreativeCardProps {
   companyName?: string;
   companyUrl?: string;
   companyLogo?: string;
+  forcedPMaxTab?: PMaxTab;
+  initialOffset?: number;
 }
 
 const CARD_SLOT = 3;
 
-function formatDisplayUrl(url?: string): string {
-  if (!url) return "www.suaempresa.com.br";
-  return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
-}
-
 function isYouTubeShort(url?: string): boolean {
   return !!(url && url.includes("/shorts/"));
 }
-
-const PMAX_TABS = [
-  { id: "search",  label: "Search"  },
-  { id: "display", label: "Display" },
-  { id: "card",    label: "Card"    },
-  { id: "feed",    label: "Feed"    },
-  { id: "youtube", label: "YT"      },
-] as const;
-type PMaxTab = (typeof PMAX_TABS)[number]["id"];
 
 // Placements Meta compatíveis por formato
 const META_PLACEMENTS_BY_FORMAT: Record<string, { id: string; label: string }[]> = {
@@ -43,20 +33,92 @@ const META_PLACEMENTS_BY_FORMAT: Record<string, { id: string; label: string }[]>
 };
 type MetaPlacement = "feed" | "stories" | "reels";
 
-export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", companyName, companyUrl, companyLogo }: CreativeCardProps) {
+// ─── Shared Sub-components (Extracted for Performance) ─────────────────────────
+
+const LogoOrInitials = React.memo(({ url, company, size = "w-5 h-5", fontSize = "text-[7px]" }: { url?: string; company: string; size?: string; fontSize?: string }) => (
+  url ? (
+    <img src={url} loading="lazy" alt="" className={`${size} object-contain rounded shrink-0`} />
+  ) : (
+    <div className={`${size} rounded-full bg-gray-200 flex items-center justify-center ${fontSize} font-bold text-gray-500 shrink-0`}>
+      {company.slice(0, 2).toUpperCase()}
+    </div>
+  )
+));
+
+const VideoOverlay = React.memo(({ logoUrl, company }: { logoUrl?: string; company: string }) => (
+  <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4">
+    <div className="flex items-center gap-2">
+      {logoUrl ? (
+        <img src={logoUrl} loading="lazy" alt="" className="w-7 h-7 rounded-full border border-white/20 object-cover" />
+      ) : (
+        <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-[8px] font-bold text-white">
+          {company.slice(0, 2).toUpperCase()}
+        </div>
+      )}
+      <span className="text-white text-[10px] font-bold drop-shadow-sm">{company}</span>
+    </div>
+  </div>
+));
+
+const VideoThumb = React.memo(({ videoId, isShort, rawUrl, logoUrl, company, muted, onMuteToggle }: { videoId: string | null; isShort: boolean; rawUrl?: string; logoUrl?: string; company: string; muted: boolean; onMuteToggle: (muted: boolean) => void }) => {
+  const directUrl = rawUrl ? normalizeMediaUrl(rawUrl) : "";
+  const isDirect = isDirectVideoUrl(rawUrl);
+
+  if (isDirect) {
+    return (
+      <div className="relative w-full overflow-hidden flex items-center justify-center bg-gray-50">
+        <video
+          src={directUrl}
+          className="w-full h-auto block"
+          muted={muted}
+          playsInline
+          loop
+          autoPlay
+          preload="metadata"
+          crossOrigin="anonymous"
+        />
+        <VideoOverlay logoUrl={logoUrl} company={company} />
+        <button
+          onClick={(e) => { e.stopPropagation(); onMuteToggle(!muted); }}
+          className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+        >
+          {muted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+        </button>
+      </div>
+    );
+  }
+  if (!videoId) return (
+    <div className="w-full aspect-video bg-gray-900 flex items-center justify-center">
+      <Globe className="w-6 h-6 text-gray-600" />
+    </div>
+  );
+  return (
+    <div className="relative w-full bg-black overflow-hidden flex items-center justify-center" style={{ minHeight: isShort ? "300px" : "auto" }}>
+      <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} loading="lazy" className="w-full h-full object-cover" alt="" />
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg">
+          <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[9px] border-l-white border-b-[5px] border-b-transparent ml-0.5" />
+        </div>
+      </div>
+      <VideoOverlay logoUrl={logoUrl} company={company} />
+    </div>
+  );
+});
+
+export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", companyName, companyUrl, companyLogo, forcedPMaxTab, initialOffset = 0 }: CreativeCardProps) {
   const isMeta = creative.format === "Image" || creative.format === "Video" || creative.format === "Carousel";
   const isSearchAd = creative.format.includes("Search") || creative.format.includes("Busca");
   const isPMax = creative.format.includes("Performance Max") || creative.format.includes("PMax");
   const isRotating = isSearchAd || isPMax;
 
   // ── Meta Carousel state ──────────────────────────────────────────
-  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [carouselIdx, setCarouselIdx] = useState(initialOffset % Math.max(1, (creative as any).carouselCards?.length || 1));
   const meta = creative as unknown as MetaCreative;
   const carouselCards = meta.carouselCards || [];
 
   // ── Meta image variations + placement state ──────────────────────
   const metaImages = creative.images?.length ? creative.images : (meta.imageUrl ? [meta.imageUrl] : []);
-  const [metaImgIdx, setMetaImgIdx] = useState(0);
+  const [metaImgIdx, setMetaImgIdx] = useState(initialOffset % Math.max(1, metaImages.length));
   const metaPlacements = META_PLACEMENTS_BY_FORMAT[creative.format] ?? META_PLACEMENTS_BY_FORMAT["Image"];
   const [metaPlacement, setMetaPlacement] = useState<MetaPlacement>(
     (meta.primaryPlacement?.toLowerCase() as MetaPlacement) ?? "feed"
@@ -75,8 +137,8 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
   const bCount = creative.bodies?.length || 0;
   const rsaCanRotate = isSearchAd && (hCount > CARD_SLOT || bCount > 1);
   const maxCombo = hCount > CARD_SLOT ? hCount - CARD_SLOT + 1 : 1;
-  const [comboIndex, setComboIndex] = useState(0);
-  const [bodyIndex, setBodyIndex] = useState(0);
+  const [comboIndex, setComboIndex] = useState(initialOffset % maxCombo);
+  const [bodyIndex, setBodyIndex] = useState(initialOffset % Math.max(1, bCount));
 
   const rsaNext = useCallback(() => {
     setComboIndex((prev) => (hCount > CARD_SLOT ? (prev + 1) % maxCombo : 0));
@@ -93,24 +155,27 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
   }, [hCount, bCount, maxCombo]);
 
   // ── PMax state ───────────────────────────────────────────────────
-  const [pmaxTab, setPmaxTab] = useState<PMaxTab>("search");
-  const [pmaxAsset, setPmaxAsset] = useState(0);
+  const [pmaxTab, setPmaxTab] = useState<PMaxTab>(forcedPMaxTab || "search");
+  const [pmaxAsset, setPmaxAsset] = useState(initialOffset);
   const pmaxComboRef = useRef(0);
   const COMBOS_PER_TAB = 3;
+  const [thumbMuted, setThumbMuted] = useState(true); // State for PMax VideoThumb
 
   const pmaxNext = useCallback(() => {
     pmaxComboRef.current++;
     setPmaxAsset((i) => i + 1);
     if (pmaxComboRef.current >= COMBOS_PER_TAB) {
       pmaxComboRef.current = 0;
-      setPmaxTab((prev) => {
-        const idx = PMAX_TABS.findIndex((t) => t.id === prev);
-        return PMAX_TABS[(idx + 1) % PMAX_TABS.length].id;
-      });
+      if (!forcedPMaxTab) {
+        setPmaxTab((prev) => {
+          const idx = PMAX_TABS.findIndex((t) => t.id === prev);
+          return PMAX_TABS[(idx + 1) % PMAX_TABS.length].id;
+        });
+      }
     }
     progressRef.current = 0;
     lastTimeRef.current = null;
-  }, []);
+  }, [forcedPMaxTab]);
 
   const pmaxPrev = useCallback(() => {
     pmaxComboRef.current = Math.max(0, pmaxComboRef.current - 1);
@@ -161,11 +226,14 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
   const pmaxLongH    = creative.longHeadlines?.length ? creative.longHeadlines : pmaxHeadlines;
   const pmaxBodies   = creative.bodies?.length ? creative.bodies : creative.body ? [creative.body] : [""];
   const n = pmaxAsset;
+  // Descorrelacionar usando a posição do próprio formato (tab) para garantir que cada card comece em um ponto diferente
+  const tabIndex = PMAX_TABS.findIndex(t => t.id === pmaxTab);
+  const headlineIdx = n + initialOffset + tabIndex; 
   const pmaxImgRaw  = pmaxImages[n % Math.max(pmaxImages.length, 1)]   || "";
   const pmaxImg     = normalizeMediaUrl(pmaxImgRaw);
   const pmaxFocal   = creative.imageFocalPoints?.[pmaxImgRaw] ?? { x: 50, y: 50 };
-  const pmaxLH   = pmaxLongH[n % pmaxLongH.length];
-  const pmaxBody = pmaxBodies[n % pmaxBodies.length];
+  const pmaxLH      = pmaxLongH[headlineIdx % Math.max(pmaxLongH.length, 1)];
+  const pmaxBody    = pmaxBodies[headlineIdx % Math.max(pmaxBodies.length, 1)];
   const pmaxLogoUrl  = normalizeMediaUrl(creative.logos?.[0]);
   const pmaxVideos   = creative.videos ?? [];
   const pmaxVideoUrl = pmaxVideos[n % Math.max(pmaxVideos.length, 1)];
@@ -187,98 +255,111 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
 
   // ── PMax Card Preview ──────────────────────────────────────────────────────
   if (isPMax) {
-    const LogoOrInitials = () =>
-      pmaxLogoUrl ? (
-        <img src={pmaxLogoUrl} alt="" className="w-5 h-5 object-contain rounded shrink-0" />
-      ) : (
-        <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[7px] font-bold text-gray-500 shrink-0">
-          {displayCompany.slice(0, 2).toUpperCase()}
-        </div>
-      );
+    // const LogoOrInitials = () =>
+    //   pmaxLogoUrl ? (
+    //     <img src={pmaxLogoUrl} loading="lazy" alt="" className="w-5 h-5 object-contain rounded shrink-0" />
+    //   ) : (
+    //     <div className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[7px] font-bold text-gray-500 shrink-0">
+    //       {displayCompany.slice(0, 2).toUpperCase()}
+    //     </div>
+    //   );
 
-    const VideoThumb = ({ videoId, isShort, rawUrl }: { videoId: string | null; isShort: boolean; rawUrl?: string }) => {
-      const directUrl = rawUrl ? normalizeMediaUrl(rawUrl) : "";
-      const isDirect = isDirectVideoUrl(rawUrl);
-      const [thumbMuted, setThumbMuted] = useState(true);
+    // const VideoThumb = ({ videoId, isShort, rawUrl }: { videoId: string | null; isShort: boolean; rawUrl?: string }) => {
+    //   const directUrl = rawUrl ? normalizeMediaUrl(rawUrl) : "";
+    //   const isDirect = isDirectVideoUrl(rawUrl);
+    //   const [thumbMuted, setThumbMuted] = useState(true);
 
-      const VideoOverlay = () => (
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4">
-          <div className="flex items-center gap-2">
-            {pmaxLogoUrl ? (
-              <img src={pmaxLogoUrl} alt="" className="w-7 h-7 rounded-full border border-white/20 object-cover" />
-            ) : (
-              <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-[8px] font-bold text-white">
-                {displayCompany.slice(0, 2).toUpperCase()}
-              </div>
-            )}
-            <span className="text-white text-[10px] font-bold drop-shadow-sm">{displayCompany}</span>
-          </div>
-        </div>
-      );
+    //   const VideoOverlay = () => (
+    //     <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-4">
+    //       <div className="flex items-center gap-2">
+    //         {pmaxLogoUrl ? (
+    //           <img src={pmaxLogoUrl} loading="lazy" alt="" className="w-7 h-7 rounded-full border border-white/20 object-cover" />
+    //         ) : (
+    //           <div className="w-7 h-7 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-[8px] font-bold text-white">
+    //             {displayCompany.slice(0, 2).toUpperCase()}
+    //           </div>
+    //         )}
+    //         <span className="text-white text-[10px] font-bold drop-shadow-sm">{displayCompany}</span>
+    //       </div>
+    //     </div>
+    //   );
 
-      if (isDirect) {
-        return (
-          <div className="relative w-full bg-black overflow-hidden flex items-center justify-center">
-            <video src={directUrl} className="w-full h-auto max-h-[300px] block" muted={thumbMuted} playsInline loop autoPlay />
-            <VideoOverlay />
-            <button
-              onClick={(e) => { e.stopPropagation(); setThumbMuted((m) => !m); }}
-              className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
-            >
-              {thumbMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
-            </button>
-          </div>
-        );
-      }
-      if (!videoId) return (
-        <div className="w-full aspect-video bg-gray-900 flex items-center justify-center">
-          <Globe className="w-6 h-6 text-gray-600" />
-        </div>
-      );
-      return (
-        <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: isShort ? "9/16" : "16/9" }}>
-          <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} className="w-full h-full object-cover" alt="" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-9 h-9 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg">
-              <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[9px] border-l-white border-b-[5px] border-b-transparent ml-0.5" />
-            </div>
-          </div>
-          <VideoOverlay />
-        </div>
-      );
-    };
+    //   if (isDirect) {
+    //     return (
+    //       <div className="relative w-full bg-black overflow-hidden flex items-center justify-center">
+    //         <video
+    //           src={directUrl}
+    //           className="w-full h-auto min-h-[150px] max-h-[300px] block bg-black/10"
+    //           muted={thumbMuted}
+    //           playsInline
+    //           loop
+    //           autoPlay
+    //           preload="metadata"
+    //           crossOrigin="anonymous"
+    //         />
+    //         <VideoOverlay />
+    //         <button
+    //           onClick={(e) => { e.stopPropagation(); setThumbMuted((m) => !m); }}
+    //           className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+    //         >
+    //           {thumbMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+    //         </button>
+    //       </div>
+    //     );
+    //   }
+    //   if (!videoId) return (
+    //     <div className="w-full aspect-video bg-gray-900 flex items-center justify-center">
+    //       <Globe className="w-6 h-6 text-gray-600" />
+    //     </div>
+    //   );
+    //   return (
+    //     <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: isShort ? "9/16" : "16/9" }}>
+    //       <img src={`https://img.youtube.com/vi/${videoId}/hqdefault.jpg`} loading="lazy" className="w-full h-full object-cover" alt="" />
+    //       <div className="absolute inset-0 flex items-center justify-center">
+    //         <div className="w-9 h-9 rounded-full bg-red-600/90 flex items-center justify-center shadow-lg">
+    //           <div className="w-0 h-0 border-t-[5px] border-t-transparent border-l-[9px] border-l-white border-b-[5px] border-b-transparent ml-0.5" />
+    //         </div>
+    //       </div>
+    //       <VideoOverlay />
+    //     </div>
+    //   );
+    // };
 
     return (
       <div
         onClick={onClick}
         onMouseEnter={() => setPaused(true)}
         onMouseLeave={() => setPaused(false)}
-        className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg hover:border-gray-300 hover:-translate-y-0.5 group flex flex-col shadow-sm"
+        className="bg-white rounded-2xl border border-gray-100 flex flex-col h-full shadow-sm group hover:shadow-md transition-all overflow-hidden min-w-[280px]"
       >
         {/* Header */}
-        <div className="flex items-center gap-1.5 px-4 pt-3 pb-2">
+        <div className="flex items-center gap-1.5 px-4 pt-4 pb-2">
           <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${isPMax ? "bg-emerald-400" : "bg-blue-400"}`} />
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none">Performance Max</span>
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
+            Performance Max {forcedPMaxTab && `· ${PMAX_TABS.find(t => t.id === forcedPMaxTab)?.label || forcedPMaxTab.toUpperCase()}`}
+          </span>
         </div>
 
         {/* Segmented tab control */}
-        <div className="px-3 pb-3">
-          <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
-            {PMAX_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={(e) => { e.stopPropagation(); setPmaxTab(tab.id); }}
-                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all duration-200 ${
-                  pmaxTab === tab.id
-                    ? "bg-white text-gray-800 shadow-sm"
-                    : "text-gray-400 hover:text-gray-500"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+        {!forcedPMaxTab && (
+          <div className="px-3 pb-3">
+            <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
+              {PMAX_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={(e) => { e.stopPropagation(); setPmaxTab(tab.id); }}
+                  className={`flex-1 text-xs font-bold py-1.5 rounded-md transition-all duration-200 ${
+                    pmaxTab === tab.id
+                      ? "bg-white text-gray-800 shadow-sm"
+                      : "text-gray-400 hover:text-gray-500"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Preview */}
         <div className="flex-1 overflow-hidden relative">
@@ -294,18 +375,18 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {pmaxTab === "search" && (
                 <div className="px-4 pb-2 space-y-1.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] border border-gray-300 rounded px-1 text-gray-400 leading-tight">Ad</span>
-                    <span className="text-[9px] text-gray-400 truncate">{displayUrl}</span>
+                    <span className="text-xs border border-gray-300 rounded px-1.5 text-gray-400 leading-tight">Ad</span>
+                    <span className="text-xs text-gray-400 truncate">{displayUrl}</span>
                   </div>
-                  <p className="text-[12px] text-blue-700 font-medium leading-snug">
+                  <p className="text-sm text-blue-700 font-medium leading-snug">
                     {Array.from({ length: Math.min(3, pmaxHeadlines.length) }, (_, i) => pmaxHeadlines[(n + i) % pmaxHeadlines.length]).join(" · ")}
                   </p>
-                  <p className="text-[11px] text-gray-500 leading-relaxed">{pmaxBody}</p>
+                  <p className="text-xs text-gray-500 leading-relaxed">{pmaxBody}</p>
                 </div>
               )}
 
               {/* Display */}
-              {pmaxTab === "display" && (
+              {pmaxTab === "display_h" && (
                 <div>
                   {pmaxImg ? (
                     <img
@@ -320,19 +401,19 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                     </div>
                   )}
                   <div className="flex items-center gap-2.5 px-4 py-2.5">
-                    <LogoOrInitials />
+                    <LogoOrInitials url={pmaxLogoUrl} company={displayCompany} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-semibold text-gray-900 leading-snug">{pmaxLH}</p>
-                      <p className="text-[10px] text-gray-400">{displayCompany}</p>
+                      <p className="text-sm font-semibold text-gray-900 leading-snug">{pmaxLH}</p>
+                      <p className="text-xs text-gray-400">{displayCompany}</p>
                     </div>
-                    <span className="text-[10px] text-blue-600 font-semibold shrink-0 whitespace-nowrap">{creative.cta} ›</span>
+                    <span className="text-xs text-blue-600 font-semibold shrink-0 whitespace-nowrap">{creative.cta} ›</span>
                   </div>
                 </div>
               )}
 
               {/* Card */}
-              {pmaxTab === "card" && (
-                <div className="mx-auto max-w-[200px]">
+              {pmaxTab === "display_v" && (
+                <div className="mx-auto w-full">
                   {pmaxImg ? (
                     <img
                       src={pmaxImg}
@@ -346,15 +427,15 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                     </div>
                   )}
                   <div className="px-3 py-2.5 space-y-1">
-                    <p className="text-[11px] font-bold text-gray-900 leading-snug">{pmaxLH}</p>
-                    <p className="text-[10px] text-gray-400">{displayCompany}</p>
-                    <p className="text-[10px] text-blue-600 font-semibold">{creative.cta} ›</p>
+                    <p className="text-sm font-bold text-gray-900 leading-snug">{pmaxLH}</p>
+                    <p className="text-xs text-gray-400">{displayCompany}</p>
+                    <p className="text-xs text-blue-600 font-semibold">{creative.cta} ›</p>
                   </div>
                 </div>
               )}
 
               {/* Feed */}
-              {pmaxTab === "feed" && (
+              {pmaxTab === "discovery" && (
                 <div>
                    {pmaxImg ? (
                     <img
@@ -364,16 +445,16 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                       style={{ objectPosition: `${pmaxFocal.x}% ${pmaxFocal.y}%`, aspectRatio: "1.91/1" }}
                     />
                   ) : (
-                    <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center">
+                    <div className="aspect-[1.91/1] bg-gray-100 flex items-center justify-center">
                       <Globe className="w-6 h-6 text-gray-300" />
                     </div>
                   )}
                   <div className="flex items-start gap-2 px-4 py-2.5">
-                    <LogoOrInitials />
+                    <LogoOrInitials url={pmaxLogoUrl} company={displayCompany} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold text-gray-900 leading-snug">{pmaxLH}</p>
-                      <p className="text-[10px] text-gray-400 mt-0.5">Patrocinado · {displayCompany}</p>
-                      <p className="text-[10px] text-blue-600 font-medium mt-0.5">{pmaxBody}</p>
+                      <p className="text-sm font-bold text-gray-900 leading-snug">{pmaxLH}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">Patrocinado · {displayCompany}</p>
+                      <p className="text-xs text-blue-600 font-medium mt-0.5">{pmaxBody}</p>
                     </div>
                   </div>
                 </div>
@@ -382,7 +463,15 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {/* YouTube */}
               {pmaxTab === "youtube" && (
                 <div className="overflow-hidden">
-                  <VideoThumb videoId={pmaxVideoId} isShort={pmaxIsShort} rawUrl={pmaxVideoUrl} />
+                  <VideoThumb
+                  videoId={pmaxVideoId}
+                  isShort={pmaxIsShort}
+                  rawUrl={pmaxVideoUrl}
+                  logoUrl={pmaxLogoUrl}
+                  company={displayCompany}
+                  muted={thumbMuted}
+                  onMuteToggle={setThumbMuted}
+                />
                 </div>
               )}
             </motion.div>
@@ -391,7 +480,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 mt-auto border-t border-gray-50">
-          <span className={`text-xs text-white ${accentClass} px-3 py-1.5 rounded-lg`} style={{ fontWeight: 600 }}>
+          <span className={`text-sm text-white ${accentClass} px-3 py-1.5 rounded-lg`} style={{ fontWeight: 600 }}>
             {creative.cta}
           </span>
           <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-400 transition-colors" />
@@ -473,6 +562,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
 
     const MediaContent = ({ className }: { className?: string }) => {
       const [mediaMuted, setMediaMuted] = useState(true);
+      const [imgLoaded, setImgLoaded] = useState(false);
 
       // Busca a melhor URL de vídeo de todas as fontes, independente do formato declarado
       const rawVideoUrl =
@@ -485,17 +575,21 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         ? normalizeMediaUrl(rawVideoUrl)
         : normalizeMediaUrl(currentImgUrl);
 
+      // Reset skeleton quando a fonte muda
+      useEffect(() => { setImgLoaded(false); }, [normalized]);
+
       if (rawVideoUrl && normalized) {
         return (
           <div className="relative w-full h-full bg-black flex items-center justify-center">
             <video
-              key={normalized}
               src={normalized}
-              className={`w-full h-full object-cover ${className ?? ""}`}
+              className={`w-full h-full object-cover bg-black/10 ${className ?? ""}`}
               muted={mediaMuted}
               playsInline
               loop
               autoPlay
+              preload="metadata"
+              crossOrigin="anonymous"
             />
             <button
               onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}
@@ -508,19 +602,27 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
       }
 
       return (
-        <AnimatePresence mode="wait">
-          <motion.img
-            key={isCarousel ? (currentCard?.id || carouselIdx) : `${creative.id}-${metaImgIdx}`}
-            src={normalized}
-            alt=""
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className={`w-full h-full object-cover ${className ?? ""}`}
-            onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-          />
-        </AnimatePresence>
+        <>
+          {!imgLoaded && (
+            <div className="absolute inset-0 bg-gray-100 animate-pulse" style={{ zIndex: 1 }} />
+          )}
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={isCarousel ? (currentCard?.id || carouselIdx) : `${creative.id}-${metaImgIdx}`}
+              src={normalized}
+              loading="lazy"
+              alt=""
+              initial={{ opacity: 0 }}
+              animate={{ opacity: imgLoaded ? 1 : 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className={`w-full h-full object-cover ${className ?? ""}`}
+              style={{ position: "relative", zIndex: 2 }}
+              onLoad={() => setImgLoaded(true)}
+              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; setImgLoaded(true); }}
+            />
+          </AnimatePresence>
+        </>
       );
     };
 
@@ -531,19 +633,20 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         <div className="flex items-center justify-between px-3 py-2.5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative">
-              <Globe className="w-4 h-4 text-slate-300 pointer-events-none" title="Avatar fallback" />
+              <Globe className="w-4 h-4 text-slate-300 pointer-events-none" />
               {companyLogo && (
                 <img
                   src={normalizeMediaUrl(companyLogo)}
                   alt=""
+                  loading="lazy"
                   className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
                   onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
                 />
               )}
             </div>
             <div>
-              <p className="text-[12px] font-bold text-gray-900 leading-none">{displayCompany}</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Patrocinado · <span className="text-gray-300">🌐</span></p>
+              <p className="text-sm font-bold text-gray-900 leading-none">{displayCompany}</p>
+              <p className="text-xs text-gray-400 mt-0.5">Patrocinado · <span className="text-gray-300">🌐</span></p>
             </div>
           </div>
           <div className="flex gap-[3px]">
@@ -554,7 +657,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         </div>
         {/* Copy */}
         <div className="px-3 pb-2">
-          <p className="text-[12px] text-gray-800 leading-relaxed line-clamp-2">{meta.primaryText || creative.body}</p>
+          <p className="text-sm text-gray-800 leading-relaxed line-clamp-2">{meta.primaryText || creative.body}</p>
         </div>
         {/* Media — 4:5 for feed */}
         <div className="relative overflow-hidden bg-slate-100 group" style={{ aspectRatio: "4 / 5" }}>
@@ -564,13 +667,13 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         {/* CTA bar */}
         <div className="px-3 py-2.5 bg-slate-50 border-t border-gray-100 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[9px] text-gray-400 uppercase tracking-tight truncate">{meta.displayLink || formatDisplayUrl(companyUrl)}</p>
-            <p className="text-[12px] font-bold text-gray-900 leading-snug truncate">
+            <p className="text-[10px] text-gray-400 uppercase tracking-tight truncate">{meta.displayLink || formatDisplayUrl(companyUrl)}</p>
+            <p className="text-sm font-bold text-gray-900 leading-snug truncate">
               {(isCarousel ? currentCard?.headline : meta.headline) || creative.headline}
             </p>
           </div>
           <div className="px-3 py-1.5 bg-gray-200 rounded-md shrink-0">
-            <span className="text-[11px] font-bold text-gray-700">{meta.cta}</span>
+            <span className="text-xs font-bold text-gray-700">{meta.cta}</span>
           </div>
         </div>
       </div>
@@ -595,25 +698,26 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                 <img
                   src={normalizeMediaUrl(companyLogo)}
                   alt=""
+                  loading="lazy"
                   className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
                   onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
                 />
               )}
             </div>
             <div>
-              <p className="text-[11px] font-bold text-white leading-none">{displayCompany}</p>
-              <p className="text-[9px] text-white/60 mt-0.5">Patrocinado</p>
+              <p className="text-sm font-bold text-white leading-none">{displayCompany}</p>
+              <p className="text-xs text-white/60 mt-0.5">Patrocinado</p>
             </div>
           </div>
         </div>
         {/* Bottom CTA */}
         <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/70 to-transparent z-20 pointer-events-none flex flex-col items-center gap-2">
-          <p className="text-[11px] text-white font-semibold text-center line-clamp-2 drop-shadow">
+          <p className="text-sm text-white font-semibold text-center line-clamp-2 drop-shadow">
             {meta.headline || creative.headline}
           </p>
           <div className="flex flex-col items-center gap-1">
             <div className="w-px h-3 bg-white/60" />
-            <p className="text-[10px] text-white font-bold uppercase tracking-wide">{meta.cta}</p>
+            <p className="text-xs text-white font-bold uppercase tracking-wide">{meta.cta}</p>
           </div>
         </div>
       </div>
@@ -640,7 +744,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 mb-1">
                 <div className="w-5 h-5 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
-                  <Globe className="w-2.5 h-2.5 text-white/40 pointer-events-none" />
+                  <Globe className="w-2.5 h-2.5 text-white/40" />
                   {companyLogo && (
                     <img
                       src={normalizeMediaUrl(companyLogo)}
@@ -650,15 +754,15 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                     />
                   )}
                 </div>
-                <span className="text-[10px] font-bold text-white">{displayCompany}</span>
-                <span className="text-[9px] text-white/50">· Patrocinado</span>
+                <span className="text-xs font-bold text-white">{displayCompany}</span>
+                <span className="text-xs text-white/50">· Patrocinado</span>
               </div>
-              <p className="text-[11px] text-white line-clamp-2 leading-snug">{meta.primaryText || creative.body}</p>
+              <p className="text-sm text-white line-clamp-2 leading-snug">{meta.primaryText || creative.body}</p>
             </div>
           </div>
           <div className="mt-2.5 flex justify-center">
             <div className="px-5 py-1.5 bg-white/15 border border-white/30 backdrop-blur-sm rounded-full">
-              <span className="text-[11px] font-bold text-white">{meta.cta}</span>
+              <span className="text-sm font-bold text-white">{meta.cta}</span>
             </div>
           </div>
         </div>
@@ -677,7 +781,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               <button
                 key={p.id}
                 onClick={(e) => { e.stopPropagation(); setMetaPlacement(p.id as MetaPlacement); }}
-                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all duration-200 ${
+                className={`flex-1 text-xs font-bold py-1.5 rounded-md transition-all duration-200 ${
                   metaPlacement === p.id
                     ? "bg-white text-gray-800 shadow-sm"
                     : "text-gray-400 hover:text-gray-500"
@@ -736,7 +840,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2">
           <div className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotColor}`} />
-          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatLabel}</span>
+          <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{formatLabel}</span>
         </div>
       </div>
 
@@ -744,14 +848,14 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
       {isSearchAd ? (
         <div className="relative px-4 pb-3 flex flex-col">
           <div className="flex items-center gap-1.5 mb-2">
-            <span className="text-[10px] font-semibold text-gray-500 border border-gray-300 rounded px-1 leading-tight">Ad</span>
-            <span className="text-[10px] text-gray-500 leading-tight truncate">{displayUrl}</span>
+            <span className="text-xs font-semibold text-gray-500 border border-gray-300 rounded px-1.5 leading-tight">Ad</span>
+            <span className="text-xs text-gray-500 leading-tight truncate">{displayUrl}</span>
           </div>
           <div className="flex items-center gap-1.5 mb-2">
             <div className="w-5 h-5 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
               <Globe className="w-3 h-3 text-slate-500" />
             </div>
-            <span className="text-[11px] text-gray-700 font-medium leading-tight truncate">{displayCompany}</span>
+            <span className="text-xs text-gray-700 font-medium leading-tight truncate">{displayCompany}</span>
           </div>
           <AnimatePresence mode="wait">
             <motion.h3
@@ -760,7 +864,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.3 }}
-              className="text-sm text-blue-700 font-medium leading-snug group-hover:underline decoration-blue-700 mb-1.5"
+              className="text-base text-blue-700 font-medium leading-snug group-hover:underline decoration-blue-700 mb-1.5"
             >
               {displayHeadline}
             </motion.h3>
@@ -772,7 +876,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
-              className="text-[11px] text-gray-600 leading-relaxed"
+              className="text-sm text-gray-600 leading-relaxed"
             >
               {displayBody}
             </motion.p>
@@ -788,6 +892,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
             <div className="relative w-full h-full">
               <img
                 src={thumbSrc}
+                loading="lazy"
                 alt=""
                 onError={() => setImgError(true)}
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"

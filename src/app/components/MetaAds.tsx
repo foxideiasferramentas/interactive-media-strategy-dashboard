@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Globe } from "lucide-react";
+import { MetaIcon } from "./BrandIcons";
 import { FunnelSidebar } from "./FunnelSidebar";
 import { CreativeCard } from "./CreativeCard";
 import { CreativeModal, type Creative } from "./CreativeModal";
@@ -71,10 +72,10 @@ function EmptyState({ step }: { step: FunnelStep }) {
   };
   return (
     <div className="bg-white rounded-xl border border-gray-100 px-8 py-16 text-center">
-      <p className="text-gray-400 font-medium">
+      <p className="text-gray-400 font-medium text-lg">
         Nenhum público cadastrado para o {labels[step]}.
       </p>
-      <p className="text-sm text-gray-300 mt-1">
+      <p className="text-base text-gray-300 mt-2">
         Adicione públicos e criativos no Painel Admin → Editor de Estratégia.
       </p>
     </div>
@@ -150,7 +151,7 @@ export function MetaAds() {
       {/* Page Header */}
       <div className="flex items-center gap-4 mb-8">
         <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm shadow-blue-200 flex-shrink-0">
-          <Globe className="w-5 h-5 text-white" />
+          <MetaIcon className="w-6 h-6" color="white" />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-0.5">
@@ -160,11 +161,11 @@ export function MetaAds() {
             >
               Meta Ads
             </h1>
-            <span className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-sm text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full font-medium">
               Facebook & Instagram
             </span>
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-base text-gray-400">
             Segmentação avançada por interesses, comportamentos e remarketing
             multi-etapa
           </p>
@@ -205,9 +206,9 @@ export function MetaAds() {
                   <div className="flex items-center gap-3 px-6 py-4">
                     <div className={`w-2 h-8 rounded-full ${colors.accent}`} />
                     <div>
-                      <p className="text-gray-900 font-semibold">{tagline}</p>
+                      <p className="text-gray-900 font-semibold text-lg">{tagline}</p>
                       {objective && (
-                        <p className="text-sm text-gray-400">{objective}</p>
+                        <p className="text-base text-gray-400 mt-0.5">{objective}</p>
                       )}
                     </div>
                   </div>
@@ -219,7 +220,7 @@ export function MetaAds() {
                 ) : (
                   <>
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-gray-400 mb-3 px-1">
+                      <p className="text-sm uppercase tracking-widest text-gray-400 mb-3 px-1 font-medium">
                         Públicos-Alvo
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
@@ -253,11 +254,11 @@ export function MetaAds() {
                           className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100"
                         >
                           <div className="flex items-center gap-2 mb-4">
-                            <p className="text-xs uppercase tracking-widest text-gray-500">
+                            <p className="text-sm uppercase tracking-widest text-gray-500">
                               Criativos para:
                             </p>
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.badge}`}
+                              className={`text-sm px-3 py-1 rounded-md font-medium ${colors.badge}`}
                             >
                               {selectedAudience.title}
                             </span>
@@ -349,10 +350,10 @@ function AudiencePresentationCard({
       }`}
     >
       <div className="flex-1">
-        <h4 className="text-sm mb-1.5 text-gray-900 font-semibold">
+        <h4 className="text-base mb-1.5 text-gray-900 font-semibold">
           {audience.title}
         </h4>
-        <p className={`text-xs leading-relaxed text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}>
+        <p className={`text-sm leading-relaxed text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}>
           {audience.description}
         </p>
 
@@ -365,25 +366,25 @@ function AudiencePresentationCard({
               className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap gap-1 overflow-hidden"
             >
               {audience.gender && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-blue-50/50 text-blue-600 rounded-md font-medium">
+                <span className="text-xs px-2 py-1 bg-blue-50/50 text-blue-600 rounded-md font-medium">
                   {audience.gender}
                 </span>
               )}
               {audience.ageRange && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-violet-50/50 text-violet-700 rounded-md font-medium">
+                <span className="text-xs px-2 py-1 bg-violet-50/50 text-violet-700 rounded-md font-medium">
                   {audience.ageRange}
                 </span>
               )}
               {audience.interests && (
-                <div className="w-full mt-1">
-                  <p className="text-[8px] uppercase text-gray-400 font-bold mb-1">Interesses</p>
-                  <p className="text-[10px] text-gray-600 leading-tight">{audience.interests}</p>
+                <div className="w-full mt-2">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Interesses</p>
+                  <p className="text-xs text-gray-600 leading-tight">{audience.interests}</p>
                 </div>
               )}
               {audience.keywords && (
-                <div className="w-full mt-1">
-                  <p className="text-[8px] uppercase text-gray-400 font-bold mb-1">Keywords</p>
-                  <p className="text-[10px] text-emerald-600 leading-tight">🔑 {audience.keywords}</p>
+                <div className="w-full mt-2">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Keywords</p>
+                  <p className="text-xs text-emerald-600 leading-tight">🔑 {audience.keywords}</p>
                 </div>
               )}
             </motion.div>
@@ -394,7 +395,7 @@ function AudiencePresentationCard({
       {hasDetails && (
         <button
           onClick={(e) => { e.stopPropagation(); onToggleExpand(!isExpanded); }}
-          className="mt-3 text-[10px] font-bold text-gray-400 hover:text-blue-600 transition-colors self-start flex items-center gap-1"
+          className="mt-3 text-xs font-bold text-gray-400 hover:text-blue-600 transition-colors self-start flex items-center gap-1"
         >
           {isExpanded ? "Ver menos" : "Ver detalhes"}
         </button>

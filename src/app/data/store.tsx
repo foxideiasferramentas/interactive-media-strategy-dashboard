@@ -302,13 +302,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       );
       addLog("atualizou a campanha", campaign.name);
 
-      supabase.from("ims_campaigns").update(campaign).eq("id", campaign.id).then(({ error }) => {
+      return supabase.from("ims_campaigns").update(campaign).eq("id", campaign.id).then(({ error }) => {
         if (error) {
           console.error("Error updating campaign", error);
           toast.error("Falha ao salvar alterações da campanha.");
         } else {
           toast.success("Estratégia salva com sucesso!");
         }
+        return { error };
       });
     },
     [addLog]

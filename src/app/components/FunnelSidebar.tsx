@@ -62,7 +62,7 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
   return (
     <div className="w-full md:w-52 flex-shrink-0">
       <div className="bg-white rounded-xl border border-gray-100 p-4 md:sticky md:top-8">
-        <p className="text-[10px] uppercase tracking-widest text-gray-400 mb-4 px-1">Etapas do Funil</p>
+        <p className="text-xs uppercase tracking-widest text-gray-400 mb-4 px-1 font-medium">Etapas do Funil</p>
 
         <div className="relative">
           {/* Vertical line */}
@@ -102,12 +102,12 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
                     {/* Label */}
                     <div className="flex-1 min-w-0 pt-0.5">
                       <p
-                        className={`text-sm leading-tight ${isActive ? step.activeText : isPast ? "text-gray-500" : "text-gray-400"}`}
+                        className={`text-base leading-tight ${isActive ? step.activeText : isPast ? "text-gray-500" : "text-gray-400"}`}
                         style={{ fontWeight: isActive ? 600 : 400 }}
                       >
                         {step.label}
                       </p>
-                      <p className={`text-xs mt-0.5 leading-tight ${isActive ? step.color : "text-gray-300"}`}>
+                      <p className={`text-sm mt-0.5 leading-tight ${isActive ? step.color : "text-gray-300"}`}>
                         {step.subtitle}
                       </p>
                     </div>
@@ -148,7 +148,7 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
               );
             })}
           </div>
-          <p className="text-[10px] text-gray-300 text-center mt-2 uppercase tracking-widest">
+          <p className="text-xs text-gray-300 text-center mt-2 uppercase tracking-widest font-medium">
             {visibleSteps[activeIndex]?.subtitle ?? ""}
           </p>
         </div>

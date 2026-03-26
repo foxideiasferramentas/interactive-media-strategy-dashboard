@@ -81,6 +81,7 @@ export interface MetaAudience {
   description: string;
   tag: string;
   creatives: MetaCreative[];
+  showInFlow?: boolean;
   // Novos campos estruturados
   about?: string;
   gender?: string;
@@ -95,6 +96,7 @@ export interface GoogleAudience {
   description: string;
   tag: string;
   creatives: GoogleCreative[];
+  showInFlow?: boolean;
   // Novos campos estruturados
   about?: string;
   gender?: string;
@@ -119,6 +121,7 @@ export interface ConversionDestination {
   id: string;
   label: string;
   url: string;
+  type?: "conversion" | "retargeting";
   event?: string; // ex: "Purchase", "Lead", "ViewContent"
   note?: string;
 }

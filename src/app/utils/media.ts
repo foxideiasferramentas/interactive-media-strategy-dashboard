@@ -3,6 +3,10 @@
  * Suporta: Dropbox (converte para dl.dropboxusercontent.com)
  * Outros provedores podem ser adicionados aqui no futuro.
  */
+
+// Cache de módulo — evita reprocessar a mesma URL repetidamente
+const _urlCache = new Map<string, string>();
+
 /**
  * Retorna true se a URL aponta para um arquivo de vídeo direto (não YouTube).
  */
@@ -16,26 +20,30 @@ export function isDirectVideoUrl(url?: string): boolean {
 
 export function normalizeMediaUrl(url?: string): string {
   if (!url) return "";
+  if (_urlCache.has(url)) return _urlCache.get(url)!;
 
-  if (url.includes("dropbox.com")) {
+  let result = url;
+  // Dropbox support
+  if (url.includes("dropbox.com") || url.includes("dropboxusercontent.com")) {
     try {
-      const u = new URL(url);
-      if (u.pathname.includes("/scl/fi/")) {
-        // URLs novas: manter domínio, trocar dl=0 por raw=1
-        u.searchParams.delete("dl");
-        u.searchParams.set("raw", "1");
-        return u.toString();
-      }
-      // URLs antigas: trocar domínio para dl.dropboxusercontent.com
-      u.host = "dl.dropboxusercontent.com";
-      u.searchParams.delete("dl");
-      u.searchParams.delete("raw");
-      return u.toString();
-    } catch {
-      // fallback caso a URL seja inválida
-      return url;
+      const dbUrl = new URL(url);
+      // Sempre removemos o parâmetro dl que pode forçar preview ou download
+      dbUrl.searchParams.delete("dl");
+      // Forçamos o parâmetro raw=1 que é a forma moderna de obter o arquivo direto
+      dbUrl.searchParams.set("raw", "1");
+      // O host dl.dropboxusercontent.com é MANDATÓRIO para evitar erros de CORS (Access-Control-Allow-Origin)
+      // ao usar atributos como crossOrigin="anonymous" no navegador.
+      dbUrl.host = "dl.dropboxusercontent.com";
+      return dbUrl.toString();
+    } catch (e) {
+      // Fallback robusto se a URL for malformada
+      return url
+        .replace("www.dropbox.com", "dl.dropboxusercontent.com")
+        .replace("dl=0", "raw=1")
+        .replace("dl=1", "raw=1");
     }
   }
 
-  return url;
+  _urlCache.set(url, result);
+  return result;
 }

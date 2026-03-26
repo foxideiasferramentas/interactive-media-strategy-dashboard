@@ -915,16 +915,19 @@ export function StrategyEditor() {
 
   // ─── Save ──────────────────────────────────────────────────────────────────
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setIsSaving(true);
-    setTimeout(() => {
-      updateCampaign(campaign);
+    try {
+      await updateCampaign(campaign);
       savedSnapshot.current = JSON.stringify(campaign);
       setIsDirty(false);
-      setIsSaving(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    }, 600);
+    } catch (error) {
+      console.error("Save error:", error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleShare = () => {

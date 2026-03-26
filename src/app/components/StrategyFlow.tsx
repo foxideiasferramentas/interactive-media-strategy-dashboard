@@ -1,8 +1,8 @@
 import React, { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { MetaIcon, GoogleIcon } from "./BrandIcons";
 import {
   Users,
-  Share2,
   Globe,
   Target,
   Box,
@@ -29,6 +29,8 @@ import {
   Zap,
   Pencil,
   Check,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Campaign, StageKey, MetaCreative, GoogleCreative, SavedAudience, ConversionDestination } from "../data/types";
 import { MetaCreativeEditor, GoogleCreativeEditor, Field } from "./CreativeEditors";
@@ -247,14 +249,13 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     const z  = zoom.current;
     const newConns: any[] = [];
 
-    const getCenter = (id: string, side: "left"|"right") => {
+    const getCenter = (id: string, side: "left"|"right"|"top"|"bottom") => {
       const el = document.getElementById(id);
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return {
-        x: (side === "right" ? r.right - cr.left : r.left - cr.left) / z,
-        y: (r.top + r.height / 2 - cr.top) / z,
-      };
+      const x = side === "right" ? r.right - cr.left : side === "left" ? r.left - cr.left : (r.left + r.width / 2 - cr.left);
+      const y = side === "bottom" ? r.bottom - cr.top : side === "top" ? r.top - cr.top : (r.top + r.height / 2 - cr.top);
+      return { x: x / z, y: y / z };
     };
 
     channels.forEach(ch => {
@@ -287,8 +288,39 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
             (cr.destinationIds || []).forEach((destId: string) => {
               const ds = getCenter(`node-cr-${cr.id}`, "right");
               const de = getCenter(`node-dest-${destId}`, "left");
-              if (ds && de) newConns.push({ start: ds, end: de, id: `cr-dest-${cr.id}-${destId}`, color: "#fcd34d", dashed: true });
+              if (ds && de) newConns.push({ start: ds, end: de, id: `cr-dest-${cr.id}-${destId}`, color: "#10b981", dashed: true });
             });
+          });
+
+          // Conexão de Retargeting Única (Reconexão aos Canais)
+          (campaign.destinations || []).forEach((dest) => {
+            if (dest.type === "retargeting") {
+              const dNode = getCenter(`node-dest-${dest.id}`, "bottom");
+              if (!dNode) return;
+
+              // Pega o primeiro canal habilitado para o qual retornar
+              const ch = campaign.budgetAllocation.metaEnabled ? "meta" : campaign.budgetAllocation.googleEnabled ? "google" : null;
+              if (ch) {
+                const sNode = getCenter(`node-channel-${ch}`, "bottom");
+                if (sNode) {
+                  const dropY = 660;
+                  const radius = 20;
+                  const path = `M ${dNode.x},${dNode.y} 
+                               L ${dNode.x},${dropY - radius} 
+                               Q ${dNode.x},${dropY} ${dNode.x - radius},${dropY} 
+                               L ${sNode.x + radius},${dropY} 
+                               Q ${sNode.x},${dropY} ${sNode.x},${dropY - radius} 
+                               L ${sNode.x},${sNode.y}`;
+
+                  newConns.push({ 
+                    id: `rtg-loop-${dest.id}`, 
+                    color: "#facc15", // Amarelo vibrante
+                    dashed: true, 
+                    customPath: path 
+                  } as any);
+                }
+              }
+            }
           });
         });
       });
@@ -526,7 +558,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const addDestination = useCallback(() => {
     const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
     if (!clone.destinations) clone.destinations = [];
-    clone.destinations.push({ id: uid(), label: "Novo Destino", url: "", event: "", note: "" });
+    clone.destinations.push({ id: uid(), label: "Novo Destino", url: "", type: "conversion", event: "", note: "" });
     pushUpdate(clone);
   }, [campaign, pushUpdate]);
 
@@ -658,6 +690,20 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
           {/* SVG de conexões */}
           <svg className="absolute inset-0 pointer-events-none z-0 overflow-visible" style={{ width: "100%", height: "100%" }}>
             {connections.map(conn => {
+              if (conn.customPath) {
+                return (
+                  <motion.path key={conn.id} d={conn.customPath} fill="none" stroke={conn.color} strokeWidth="2" strokeLinecap="round"
+                    strokeDasharray="3 2"
+                    initial={{ pathLength: 0, opacity: 0 }} 
+                    animate={{ 
+                      pathLength: 1, 
+                      opacity: 0.6,
+                    }}
+                    transition={{ duration: 0.8, ease: "easeInOut" }}
+                  />
+                );
+              }
+
               const r   = 12; // raio do canto arredondado
               const mx  = conn.start.x + (conn.end.x - conn.start.x) * 0.5; // ponto médio x
               const sy  = conn.start.y;
@@ -712,8 +758,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                         : "bg-slate-50 border-slate-200 opacity-40 grayscale"
                     }`}
                   >
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center mb-2 ${channel === "meta" ? "bg-blue-600 text-white" : "bg-emerald-600 text-white"}`}>
-                      {channel === "meta" ? <Share2 className="w-3.5 h-3.5" /> : <Globe className="w-3.5 h-3.5" />}
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center mb-2 bg-white shadow-sm">
+                      {channel === "meta" ? <MetaIcon className="w-4 h-4" /> : <GoogleIcon className="w-4 h-4" />}
                     </div>
                     <p className="text-[11px] font-bold text-slate-900">{channel === "meta" ? "Meta Ads" : "Google Ads"}</p>
                     <span className={`text-[8px] font-bold mt-1 block ${isEnabled ? "text-emerald-500" : "text-slate-300"}`}>{isEnabled ? "ATIVO" : "INATIVO"}</span>
@@ -836,6 +882,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                 onDelete={() => deleteAudience(aud.id, "meta", stageKey)}
                                 onDuplicate={() => duplicateAudience(aud.id, "meta", stageKey)}
                                 onRename={t => renameAudience(aud.id, "meta", stageKey, t)}
+                                onToggleFlow={() => updateAudience(aud.id, "meta", stageKey, { showInFlow: !aud.showInFlow })}
                                 onDragStartAudience={() => setDraggingAudience({ audienceId: aud.id, channel: "meta", stage: stageKey })}
                                 onDragEndAudience={() => {
                                   if (audienceDropTarget && draggingAudience && !(audienceDropTarget.channel === draggingAudience.channel && audienceDropTarget.stage === draggingAudience.stage))
@@ -903,6 +950,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                 onDelete={() => deleteAudience(aud.id, "google", stageKey)}
                                 onDuplicate={() => duplicateAudience(aud.id, "google", stageKey)}
                                 onRename={t => renameAudience(aud.id, "google", stageKey, t)}
+                                onToggleFlow={() => updateAudience(aud.id, "google", stageKey, { showInFlow: !aud.showInFlow })}
                                 onDragStartAudience={() => setDraggingAudience({ audienceId: aud.id, channel: "google", stage: stageKey })}
                                 onDragEndAudience={() => {
                                   if (audienceDropTarget && draggingAudience && !(audienceDropTarget.channel === draggingAudience.channel && audienceDropTarget.stage === draggingAudience.stage))
@@ -1306,8 +1354,18 @@ function DestinationsPanel({ destinations, onAdd, onUpdate, onDelete }: {
             <div key={dest.id} className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${isEditing ? "border-amber-300" : "border-slate-200"}`}>
               {/* Cabeçalho do card */}
               <div className="flex items-center gap-2 px-3 py-2.5">
-                <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                {dest.type === "retargeting"
+                  ? <RotateCcw className="w-3.5 h-3.5 text-violet-500 shrink-0" />
+                  : <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                }
                 <span className="flex-1 text-[11px] font-bold text-slate-800 truncate">{dest.label || "Sem título"}</span>
+                <button
+                  title={dest.type === "retargeting" ? "Retargeting — clique para mudar para conversão" : "Conversão — clique para mudar para retargeting"}
+                  onClick={() => onUpdate(dest.id, { type: dest.type === "retargeting" ? "conversion" : "retargeting" })}
+                  className={`p-1 rounded-lg transition-colors text-[8px] font-black tracking-wide px-1.5 ${dest.type === "retargeting" ? "bg-violet-100 text-violet-600 hover:bg-violet-200" : "bg-amber-50 text-amber-400 hover:bg-amber-100"}`}
+                >
+                  {dest.type === "retargeting" ? "RTG" : "CVR"}
+                </button>
                 <button
                   onClick={() => setEditingId(isEditing ? null : dest.id)}
                   className={`p-1 rounded-lg transition-colors ${isEditing ? "bg-amber-500 text-white" : "text-slate-300 hover:text-amber-500 hover:bg-amber-50"}`}
@@ -1366,8 +1424,14 @@ function DestinationsPanel({ destinations, onAdd, onUpdate, onDelete }: {
               )}
 
               {/* Preview resumido quando fechado */}
-              {!isEditing && (dest.url || dest.event) && (
+              {!isEditing && (dest.url || dest.event || dest.type) && (
                 <div className="px-3 pb-2.5 space-y-1">
+                  {dest.type === "retargeting" && (
+                    <div className="flex items-center gap-1">
+                      <RotateCcw className="w-2.5 h-2.5 text-violet-500" />
+                      <span className="text-[9px] font-bold text-violet-600">Retargeting — reconecta ao funil</span>
+                    </div>
+                  )}
                   {dest.event && (
                     <div className="flex items-center gap-1">
                       <Zap className="w-2.5 h-2.5 text-amber-400" />
@@ -1456,9 +1520,10 @@ interface AudienceNodeProps {
   onRename: (title: string) => void;
   onDragStartAudience: () => void;
   onDragEndAudience: () => void;
+  onToggleFlow: () => void;
 }
 
-function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDropTarget, onClick, onDragOver, onDragLeave, onDelete, onDuplicate, onRename, onDragStartAudience, onDragEndAudience }: AudienceNodeProps) {
+function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDropTarget, onClick, onDragOver, onDragLeave, onDelete, onDuplicate, onRename, onDragStartAudience, onDragEndAudience, onToggleFlow }: AudienceNodeProps) {
   const [editing, setEditing] = useState(false);
   const creativeCount = audience.creatives.length;
   const statusColor = creativeCount === 0 ? "bg-red-100 text-red-400" : creativeCount < 3 ? "bg-amber-100 text-amber-500" : "bg-emerald-100 text-emerald-600";
@@ -1491,7 +1556,7 @@ function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDro
             ? isPanelOpen ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-500"
             : isPanelOpen ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-500"
         }`}>
-          <Users className="w-3 h-3" />
+          {channel === "meta" ? <MetaIcon className="w-3.5 h-3.5" color={isPanelOpen ? "white" : undefined} /> : <GoogleIcon className="w-3.5 h-3.5" />}
         </div>
         <div className="flex-1 min-w-0">
           {editing ? (
@@ -1509,11 +1574,18 @@ function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDro
             </p>
           )}
         </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-300 hover:text-blue-400">
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          <button
+            title={audience.showInFlow ? "Ocultar do fluxo" : "Mostrar no fluxo"}
+            onClick={e => { e.stopPropagation(); onToggleFlow(); }}
+            className={`p-0.5 rounded transition-colors ${audience.showInFlow ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-400"}`}
+          >
+            {audience.showInFlow ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
+          </button>
+          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-200 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
             <Copy className="w-2.5 h-2.5" />
           </button>
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-300 hover:text-red-400">
+          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
             <X className="w-2.5 h-2.5" />
           </button>
         </div>

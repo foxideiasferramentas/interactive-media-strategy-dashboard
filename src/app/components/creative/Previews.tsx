@@ -1,6 +1,6 @@
+import React, { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Globe, Volume2, VolumeX } from "lucide-react";
-import { useState } from "react";
 import { getYouTubeId } from "../../utils/youtube";
 import { normalizeMediaUrl, isDirectVideoUrl } from "../../utils/media";
 
@@ -39,11 +39,11 @@ export function formatDisplayUrl(url?: string): string {
 
 // ─── YouTube Preview ─────────────────────────────────────────────────────────
 
-export function YouTubePreview({ url, businessName, cta, logo }: { url?: string; businessName?: string; cta?: string; logo?: string }) {
+export const YouTubePreview = React.memo(function YouTubePreview({ url, businessName, cta, logo }: { url?: string; businessName?: string; cta?: string; logo?: string }) {
   const videoId = getYouTubeId(url);
   const isShort = !!(url && url.includes("/shorts/"));
   const isDirect = isDirectVideoUrl(url);
-  const directUrl = normalizeMediaUrl(url);
+  const directUrl = useMemo(() => isDirect ? normalizeMediaUrl(url || "") : "", [isDirect, url]);
   const [ytMuted, setYtMuted] = useState(true);
 
   const Overlay = () => (
@@ -51,7 +51,7 @@ export function YouTubePreview({ url, businessName, cta, logo }: { url?: string;
       <div className="flex items-center justify-between pointer-events-auto">
         <div className="flex items-center gap-2.5">
           {logo ? (
-            <img src={logo} alt="" className="w-9 h-9 rounded-full border-2 border-white/20 object-cover shadow-lg" />
+            <img src={logo} loading="lazy" alt="" className="w-9 h-9 rounded-full border-2 border-white/20 object-cover shadow-lg" />
           ) : (
             <div className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md border border-white/10 flex items-center justify-center text-[10px] font-bold text-white">
               {businessName?.slice(0, 2).toUpperCase()}
@@ -73,8 +73,17 @@ export function YouTubePreview({ url, businessName, cta, logo }: { url?: string;
 
   if (isDirect) {
     return (
-      <div className="relative w-full bg-black flex items-center justify-center overflow-hidden">
-        <video src={directUrl} className="w-full h-auto max-h-[500px] block" muted={ytMuted} playsInline loop autoPlay />
+      <div className="relative w-full flex items-center justify-center">
+        <video
+          src={directUrl}
+          className="w-full h-auto block mx-auto"
+          muted={ytMuted}
+          playsInline
+          loop
+          autoPlay
+          preload="metadata"
+          crossOrigin="anonymous"
+        />
         <Overlay />
         <button
           onClick={() => setYtMuted((m) => !m)}
@@ -86,14 +95,6 @@ export function YouTubePreview({ url, businessName, cta, logo }: { url?: string;
     );
   }
 
-  if (!videoId) {
-    return (
-      <div className="w-full aspect-video bg-gray-900 flex items-center justify-center text-gray-500 italic text-xs border border-gray-800">
-        Vídeo Automático (Baseado em ativos)
-      </div>
-    );
-  }
-
   return (
     <div className={`relative w-full bg-black overflow-hidden ${isShort ? "aspect-[9/16]" : "aspect-video"}`}>
       <iframe
@@ -101,12 +102,12 @@ export function YouTubePreview({ url, businessName, cta, logo }: { url?: string;
         src={`https://www.youtube.com/embed/${videoId}?autoplay=0&mute=1&controls=0&modestbranding=1&rel=0`}
         title="YouTube video player"
         frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture text-shadow"
       />
       <Overlay />
     </div>
   );
-}
+});
 
 // ─── PMax Preview ────────────────────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setA
 
   const LogoMark = () =>
     logo ? (
-      <img src={logo} alt="" className="w-6 h-6 object-contain rounded shrink-0" />
+      <img src={logo} loading="lazy" alt="" className="w-6 h-6 object-contain rounded shrink-0" />
     ) : (
       <div className="w-6 h-6 rounded bg-gray-200 flex items-center justify-center text-[8px] font-bold text-gray-500 shrink-0">
         {companyName.slice(0, 2).toUpperCase()}
@@ -149,14 +150,17 @@ export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setA
     );
 
   const fp = creative.imageFocalPoints?.[img] ?? { x: 50, y: 50 };
-  const ImageBox = ({ aspect, natural }: { aspect?: string; natural?: boolean }) =>
-    img ? (
-      <div className={`bg-gray-100 overflow-hidden ${natural ? "w-full" : aspect}`}>
+  const ImageBox = ({ aspect, natural }: { aspect?: string; natural?: boolean }) => {
+    const [loaded, setLoaded] = useState(false);
+    return img ? (
+      <div className={`bg-gray-100 overflow-hidden relative ${natural ? "w-full" : aspect} ${!loaded ? "animate-pulse" : ""}`}>
         <img
           src={normalizeMediaUrl(img)}
+          loading="lazy"
           alt=""
           className={natural ? "w-full h-auto block" : "w-full h-full object-cover"}
           style={natural ? undefined : { objectPosition: `${fp.x}% ${fp.y}%` }}
+          onLoad={() => setLoaded(true)}
         />
       </div>
     ) : (
@@ -164,6 +168,7 @@ export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setA
         <Globe className="w-8 h-8 text-gray-200" />
       </div>
     );
+  };
 
   return (
     <div className="space-y-3">
@@ -192,7 +197,7 @@ export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setA
 
       <AnimatePresence mode="wait">
         <motion.div
-          key={`${activeTab}-${assetIdx}`}
+          key={activeTab}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
@@ -232,10 +237,10 @@ export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setA
           )}
 
           {activeTab === "display_v" && (
-            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm max-w-[200px] mx-auto">
+            <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm mx-auto">
               <ImageBox natural />
               <div className="p-3">
-                {logo && <img src={logo} alt="" className="h-5 w-auto object-contain mb-2" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                {logo && <img src={logo} loading="lazy" alt="" className="h-5 w-auto object-contain mb-2" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                 <p className="text-sm font-bold text-gray-900 leading-snug mb-1 line-clamp-2">{lh}</p>
                 <p className="text-[11px] text-gray-500 leading-relaxed mb-1.5 line-clamp-2">{body}</p>
                 <p className="text-[10px] text-gray-400 mb-2.5">{companyName}</p>

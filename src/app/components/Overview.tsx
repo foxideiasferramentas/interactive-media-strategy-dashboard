@@ -11,18 +11,23 @@ import {
   BarChart2,
   ChevronDown,
   CheckCircle2,
-  Share2,
   RefreshCw,
   Layers,
+  MessageCircle,
+  Share2,
+  FileText,
+  ShoppingBag,
+  Phone,
 } from "lucide-react";
 import { useStore } from "../data/store";
+import { MetaIcon, GoogleIcon } from "./BrandIcons";
 
 const channels = [
   {
     path: "/meta-ads",
     logo: (
       <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-sm">
-        <span className="text-white text-lg" style={{ fontWeight: 700 }}>f</span>
+        <MetaIcon className="w-6 h-6" color="white" />
       </div>
     ),
     name: "Meta Ads",
@@ -40,10 +45,8 @@ const channels = [
   {
     path: "/google-ads",
     logo: (
-      <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm">
-        <span className="text-lg" style={{ fontWeight: 700 }}>
-          <span className="text-blue-500">G</span>
-        </span>
+      <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shadow-sm overflow-hidden">
+        <GoogleIcon className="w-6 h-6" />
       </div>
     ),
     name: "Google Ads",
@@ -82,30 +85,60 @@ function FlowLine({ color, delay = 0, duration = 3 }: { color: string; delay?: n
   );
 }
 
+function DestIcon({ dest }: { dest: any }) {
+  const label = (dest.label ?? "").toLowerCase();
+  const url   = (dest.url   ?? "").toLowerCase();
+  const event = (dest.event ?? "").toLowerCase();
+  if (label.includes("whatsapp") || url.includes("whatsapp") || url.includes("wa.me"))
+    return <MessageCircle className="w-4 h-4 text-emerald-600" />;
+  if (label.includes("instagram") || url.includes("instagram"))
+    return <Share2 className="w-4 h-4 text-pink-500" />;
+  if (label.includes("formulário") || label.includes("form") || event.includes("lead"))
+    return <FileText className="w-4 h-4 text-blue-500" />;
+  if (label.includes("loja") || label.includes("shop") || event.includes("venda") || event.includes("purchase"))
+    return <ShoppingBag className="w-4 h-4 text-violet-500" />;
+  if (label.includes("site") || label.includes("landing") || url.includes("http"))
+    return <Globe className="w-4 h-4 text-sky-500" />;
+  if (label.includes("ligação") || label.includes("telefone") || label.includes("call"))
+    return <Phone className="w-4 h-4 text-amber-500" />;
+  return <Target className="w-4 h-4 text-gray-500" />;
+}
+
 function MediaFlowMap({ campaign }: { campaign: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [paths, setPaths] = useState<{ d: string; color: string; key: string }[]>([]);
+  const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
-  const metaOn   = campaign?.budgetAllocation?.metaEnabled   !== false;
-  const googleOn = campaign?.budgetAllocation?.googleEnabled !== false;
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const metaOn   = campaign ? (["top","middle","bottom"] as const).some(st => (campaign.meta?.[st]?.length ?? 0) > 0) : true;
+  const googleOn = campaign ? (["top","middle","bottom"] as const).some(st => (campaign.google?.[st]?.length ?? 0) > 0) : true;
+  const metaCount   = campaign ? (["top","middle","bottom"] as const).reduce((a, st) => a + (campaign.meta?.[st]?.length ?? 0), 0) : 3;
+  const googleCount = campaign ? (["top","middle","bottom"] as const).reduce((a, st) => a + (campaign.google?.[st]?.length ?? 0), 0) : 2;
+  const maxCount = Math.max(metaCount, googleCount, 1);
 
   const sources = campaign ? [
-    metaOn   && { name: "Meta Ads",   icon: Share2, color: "text-pink-500",    bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899" },
-    googleOn && { name: "Google Ads", icon: Globe,  color: "text-blue-500",    bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6" },
+    metaOn   && { name: "Meta Ads",   icon: MetaIcon,   bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899", weight: 1 + metaCount / maxCount },
+    googleOn && { name: "Google Ads", icon: GoogleIcon, bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6", weight: 1 + googleCount / maxCount },
   ].filter(Boolean) : [
-    { name: "Meta Ads",   icon: Share2, color: "text-pink-500",    bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899" },
-    { name: "Google Ads", icon: Globe,  color: "text-blue-500",    bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6" },
-    { name: "Orgânico",   icon: Users,  color: "text-emerald-500", bg: "bg-emerald-50", border: "border-emerald-200", hex: "#10b981" },
+    { name: "Meta Ads",   icon: MetaIcon,   bg: "bg-pink-50",    border: "border-pink-200",    hex: "#ec4899", weight: 2 },
+    { name: "Google Ads", icon: GoogleIcon, bg: "bg-blue-50",    border: "border-blue-200",    hex: "#3b82f6", weight: 1.5 },
+    { name: "Orgânico",   icon: Users,      bg: "bg-emerald-50", border: "border-emerald-200", hex: "#10b981", weight: 1 },
   ] as any[];
 
-  const allAudiences: { name: string; channel: string; hex: string }[] = [];
+  const allAudiences: { name: string; channel: string; hex: string; showInFlow?: boolean }[] = [];
   if (campaign) {
     (["top", "middle", "bottom"] as const).forEach(st => {
-      (campaign.meta?.[st]   || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "meta",   hex: "#ec4899" }));
-      (campaign.google?.[st] || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "google", hex: "#3b82f6" }));
+      (campaign.meta?.[st]   || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "meta",   hex: "#ec4899", showInFlow: a.showInFlow }));
+      (campaign.google?.[st] || []).forEach((a: any) => allAudiences.push({ name: a.title, channel: "google", hex: "#3b82f6", showInFlow: a.showInFlow }));
     });
   }
-  const audiences = allAudiences.slice(0, 6);
+  const hasFlowFilter = allAudiences.some(a => a.showInFlow);
+  const audiences = (hasFlowFilter ? allAudiences.filter(a => a.showInFlow) : allAudiences).slice(0, 6);
 
   const destinations: any[] = campaign?.destinations?.length
     ? campaign.destinations
@@ -115,46 +148,92 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
     const wrap = containerRef.current;
     if (!wrap) return;
     const rect = wrap.getBoundingClientRect();
-    const get = (id: string) => {
+    const getEl = (id: string) => {
       const el = document.getElementById(id);
       if (!el) return null;
       const r = el.getBoundingClientRect();
-      return { cx: r.left + r.width / 2 - rect.left, cy: r.top + r.height / 2 - rect.top, right: r.right - rect.left, left: r.left - rect.left };
+      return { cx: r.left + r.width / 2 - rect.left, cy: r.top + r.height / 2 - rect.top, right: r.right - rect.left, left: r.left - rect.left, top: r.top - rect.top, bottom: r.bottom - rect.top };
     };
 
-    const newPaths: typeof paths = [];
+    const hub = getEl("flow-hub");
+    const newPaths: { d: string; color: string; key: string; retargeting?: boolean }[] = [];
 
-    // Cada canal → cada público
+    if (!hub) { setPaths(newPaths); return; }
+
+    // Canal → hub
     sources.forEach((src: any, si: number) => {
-      const s = get(`flow-src-${si}`);
-      audiences.forEach((aud: any, ai: number) => {
-        const e = get(`flow-aud-${ai}`);
-        if (!s || !e) return;
-        // Only connect each source to audiences of its own channel (or all if no channel)
-        if (aud.channel && src.name === "Meta Ads" && aud.channel !== "meta") return;
-        if (aud.channel && src.name === "Google Ads" && aud.channel !== "google") return;
-        const mx = s.right + (e.left - s.right) / 2;
+      const s = getEl(`flow-src-${si}`);
+      if (!s) return;
+
+      if (isMobile) {
+        // Vertical: baixo de s para topo de hub
+        const my = s.bottom + (hub.top - s.bottom) / 2;
         newPaths.push({
-          key: `src${si}-aud${ai}`,
+          key: `src${si}-hub`,
           color: src.hex,
-          d: `M${s.right},${s.cy} C${mx},${s.cy} ${mx},${e.cy} ${e.left},${e.cy}`,
+          d: `M${s.cx},${s.bottom} C${s.cx},${my} ${hub.cx},${my} ${hub.cx},${hub.top}`,
         });
-      });
+      } else {
+        const mx = s.right + (hub.left - s.right) / 2;
+        newPaths.push({
+          key: `src${si}-hub`,
+          color: src.hex,
+          d: `M${s.right},${s.cy} C${mx},${s.cy} ${mx},${hub.cy} ${hub.left},${hub.cy}`,
+        });
+      }
     });
 
-    // Cada público → cada destino
-    audiences.forEach((aud: any, ai: number) => {
-      const s = get(`flow-aud-${ai}`);
-      destinations.forEach((_: any, di: number) => {
-        const e = get(`flow-dest-${di}`);
-        if (!s || !e) return;
-        const mx = s.right + (e.left - s.right) / 2;
+    // Hub → cada destino
+    destinations.forEach((dest: any, di: number) => {
+      const e = getEl(`flow-dest-${di}`);
+      if (!e) return;
+      
+      if (isMobile) {
+        // Vertical: baixo de hub para topo de destino
+        const my = hub.bottom + (e.top - hub.bottom) / 2;
         newPaths.push({
-          key: `aud${ai}-dest${di}`,
-          color: aud.hex ?? "#10b981",
-          d: `M${s.right},${s.cy} C${mx},${s.cy} ${mx},${e.cy} ${e.left},${e.cy}`,
+          key: `hub-dest${di}`,
+          color: "#10b981", // Verde de conversão
+          d: `M${hub.cx},${hub.bottom} C${hub.cx},${my} ${e.cx},${my} ${e.cx},${e.top}`,
         });
-      });
+      } else {
+        const mx = hub.right + (e.left - hub.right) / 2;
+        newPaths.push({
+          key: `hub-dest${di}`,
+          color: "#10b981", // Verde de conversão
+          d: `M${hub.right},${hub.cy} C${mx},${hub.cy} ${mx},${e.cy} ${e.left},${e.cy}`,
+        });
+      }
+
+      // Retargeting: linha única ortogonal de volta (por baixo ou lateral)
+      if (dest.type === "retargeting") {
+        // Pega o primeiro canal disponível (Meta ou Google)
+        const s = getEl(`flow-src-0`) || getEl(`flow-src-1`);
+        if (s && e) {
+          const radius = 16;
+          
+          if (isMobile) {
+            // Mobile: contorno lateral (esquerda)
+            const offX = -20; // Passa um pouco por fora pela esquerda
+            const d = `M${e.left},${e.cy} 
+                       L${offX + radius},${e.cy} 
+                       Q${offX},${e.cy} ${offX},${e.cy - radius} 
+                       L${offX},${s.cy + radius} 
+                       Q${offX},${s.cy} ${offX + radius},${s.cy} 
+                       L${s.left},${s.cy}`;
+            newPaths.push({ key: `rtg-dest${di}`, color: "#facc15", retargeting: true, d });
+          } else {
+            const dropY = Math.max(e.bottom, s.bottom) + 32;
+            const d = `M${e.cx},${e.bottom} 
+                       L${e.cx},${dropY - radius} 
+                       Q${e.cx},${dropY} ${e.cx - radius},${dropY} 
+                       L${s.cx + radius},${dropY} 
+                       Q${s.cx},${dropY} ${s.cx},${dropY - radius} 
+                       L${s.cx},${s.bottom}`;
+            newPaths.push({ key: `rtg-dest${di}`, color: "#facc15", retargeting: true, d });
+          }
+        }
+      }
     });
 
     setPaths(newPaths);
@@ -168,9 +247,10 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.08 }}
+      initial={{ opacity: 0, y: 8 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: false, margin: "-40px" }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       className="bg-white rounded-2xl border border-gray-200 p-8 relative overflow-hidden shadow-sm"
     >
       <div className="flex items-center justify-between mb-8 relative z-20">
@@ -187,67 +267,54 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
         </span>
       </div>
 
-      {/* Layout */}
-      <div ref={containerRef} className="relative hidden md:flex items-center justify-between gap-4 pb-4 min-h-[160px]">
-
+      {/* Layout Principal (Desktop: Row, Mobile: Col) */}
+      <div 
+        ref={containerRef} 
+        className="relative flex flex-col md:flex-row items-center justify-between gap-12 md:gap-8 pb-4 min-h-[300px] md:min-h-[160px]"
+      >
         {/* SVG de conexões */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
           <defs>
-            <filter id="glow-soft" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="2.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
+            <style>{`
+              @keyframes dashflow {
+                from { stroke-dashoffset: 0.18; }
+                to   { stroke-dashoffset: 0; }
+              }
+              @keyframes dashflow-rtg {
+                from { stroke-dashoffset: 0.18; }
+                to   { stroke-dashoffset: 0; }
+              }
+            `}</style>
+            <marker id="arrowRtg" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#facc15" opacity="0.8" />
+            </marker>
           </defs>
           {paths.map((p, i) => {
-            const staggerDelay = (i * 0.22) % 2.8;
+            const isRtg = (p as any).retargeting;
+            const delay = (i * 0.5) % 3;
+            const sw = (p as any).weight ?? 1.5;
+            if (isRtg) {
+              return (
+                <g key={p.key}>
+                  <path d={p.d} fill="none" stroke="#fef9c3" strokeWidth={1.5} strokeLinecap="round" strokeDasharray="3 2" />
+                  <path
+                    d={p.d} fill="none" stroke="#facc15"
+                    strokeWidth={2} strokeLinecap="round"
+                    pathLength="1" strokeDasharray="0.02 0.04" opacity={0.8}
+                    markerEnd="url(#arrowRtg)"
+                    style={{ animation: `dashflow-rtg 3s linear infinite`, animationDelay: `${delay}s` }}
+                  />
+                </g>
+              );
+            }
             return (
               <g key={p.key}>
-                {/* Track line */}
-                <path d={p.d} fill="none" stroke={p.color} strokeWidth="1.5" strokeLinecap="round" opacity="0.45" />
-                {/* Tail — long, faint */}
-                <motion.path
-                  d={p.d}
-                  fill="none"
-                  stroke={p.color}
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  pathLength={1}
-                  strokeDasharray="0.28 1"
-                  initial={{ strokeDashoffset: 1.28 }}
-                  animate={{ strokeDashoffset: -0.72 }}
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: staggerDelay,
-                    repeatDelay: 0.4,
-                  }}
-                  opacity={0.3}
-                />
-                {/* Head — short, bright, glowing */}
-                <motion.path
-                  d={p.d}
-                  fill="none"
-                  stroke={p.color}
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  pathLength={1}
-                  strokeDasharray="0.08 1"
-                  initial={{ strokeDashoffset: 1.08 }}
-                  animate={{ strokeDashoffset: -0.92 }}
-                  filter="url(#glow-soft)"
-                  transition={{
-                    duration: 2.2,
-                    repeat: Infinity,
-                    ease: "linear",
-                    delay: staggerDelay,
-                    repeatDelay: 0.4,
-                  }}
-                  opacity={0.95}
+                <path d={p.d} fill="none" stroke="#e2e8f0" strokeWidth={sw} strokeLinecap="round" />
+                <path
+                  d={p.d} fill="none" stroke={p.color}
+                  strokeWidth={sw + 0.5} strokeLinecap="round"
+                  pathLength="1" strokeDasharray="0.06 0.12" opacity={0.9}
+                  style={{ animation: `dashflow 2s linear infinite`, animationDelay: `${delay}s` }}
                 />
               </g>
             );
@@ -255,86 +322,71 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
         </svg>
 
         {/* CANAIS */}
-        <div className="flex flex-col gap-3 z-10 shrink-0">
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Canais</p>
+        <div className="flex flex-row md:flex-col gap-3 z-10 shrink-0">
           {sources.map((src: any, i: number) => (
-            <motion.div
+            <div
               id={`flow-src-${i}`}
               key={src.name}
-              initial={{ opacity: 0, x: -16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.08 }}
-              className={`${src.bg} ${src.border} border rounded-xl px-4 py-3 flex items-center gap-3 w-40 shadow-sm`}
+              className={`${src.bg} ${src.border} border rounded-xl px-4 py-2.5 md:py-3 flex items-center gap-3 w-36 md:w-40 shadow-sm`}
             >
-              <div className={`w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm ${src.color}`}>
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
                 <src.icon className="w-4 h-4" />
               </div>
-              <span className="text-sm font-semibold text-gray-700">{src.name}</span>
-            </motion.div>
+              <span className="text-xs md:text-sm font-semibold text-gray-700">{src.name}</span>
+            </div>
           ))}
         </div>
 
-        {/* PÚBLICOS */}
+        {/* HUB DE PÚBLICOS */}
         <div className="flex flex-col gap-2 z-10 shrink-0">
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Públicos</p>
-          {audiences.length > 0 ? audiences.map((aud: any, i: number) => (
-            <motion.div
-              id={`flow-aud-${i}`}
-              key={i}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.05 }}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm w-44 ${
-                aud.channel === "meta" ? "bg-blue-50 border-blue-100" : "bg-emerald-50 border-emerald-100"
-              }`}
-            >
-              <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${aud.channel === "meta" ? "bg-blue-400" : "bg-emerald-400"}`} />
-              <span className="text-[11px] font-semibold text-gray-700 truncate">{aud.name}</span>
-            </motion.div>
-          )) : (
-            <div id="flow-aud-0" className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-gray-300 w-44">
-              <Users className="w-3.5 h-3.5" />
-              <span className="text-[11px]">Sem públicos</span>
-            </div>
-          )}
+          <div
+            id="flow-hub"
+            className="border border-dashed border-gray-300 rounded-xl p-2 flex flex-col gap-1.5 bg-gray-50/50"
+          >
+            {audiences.length > 0 ? audiences.map((aud: any, i: number) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white shadow-sm w-40 md:w-44"
+              >
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: aud.hex }} />
+                <span className="text-[10px] md:text-[11px] font-medium text-gray-600 truncate">{aud.name}</span>
+              </div>
+            )) : (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-gray-300 w-40 md:w-44">
+                <Users className="w-3 h-3" />
+                <span className="text-[10px] md:text-[11px]">Sem públicos</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* DESTINOS */}
         <div className="flex flex-col gap-3 z-10 shrink-0">
-          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-center">Destinos</p>
-          {destinations.map((dest: any, i: number) => (
-            <motion.div
-              id={`flow-dest-${i}`}
-              key={dest.id}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2 + i * 0.08 }}
-              whileHover={{ scale: 1.03 }}
-              className="bg-emerald-600 rounded-xl px-4 py-3 text-white w-44 shadow-lg shadow-emerald-100 relative overflow-hidden"
-            >
-              <Target className="w-5 h-5 mb-1 text-emerald-200" />
-              <p className="font-bold text-sm leading-tight">{dest.label}</p>
-              {dest.event && <p className="text-[9px] text-emerald-200 uppercase tracking-widest mt-0.5">{dest.event}</p>}
-              {dest.url && <p className="text-[8px] text-emerald-300 font-mono mt-1 truncate">{dest.url.replace(/^https?:\/\//, "")}</p>}
-              <motion.div
-                animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.05, 0.2] }}
-                transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.5 }}
-                className="absolute inset-0 bg-emerald-300 -z-10 blur-xl"
-              />
-            </motion.div>
-          ))}
+          {destinations.map((dest: any, i: number) => {
+            const isRtg = dest.type === "retargeting";
+            return (
+              <div
+                id={`flow-dest-${i}`}
+                key={dest.id}
+                className="flex items-center gap-2.5"
+              >
+                <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm shrink-0 ${isRtg ? "bg-violet-50 border-2 border-violet-300" : "bg-white border-2 border-gray-200"}`}>
+                  {isRtg ? <RefreshCw className="w-4 h-4 text-violet-500" /> : <DestIcon dest={dest} />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] md:text-[12px] font-semibold leading-tight truncate" style={{ color: isRtg ? "#7c3aed" : "#374151" }}>{dest.label}</p>
+                  {isRtg
+                    ? <p className="text-[8px] md:text-[9px] text-violet-400 truncate">Retargeting</p>
+                    : dest.event && <p className="text-[8px] md:text-[9px] text-gray-400 truncate">{dest.event}</p>
+                  }
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Dot grid background */}
-        <div className="absolute inset-0 -z-10 opacity-[0.03]"
+        <div className="absolute inset-0 -z-10 opacity-[0.025]"
           style={{ backgroundImage: "radial-gradient(circle, #000 1px, transparent 1px)", backgroundSize: "28px 28px" }} />
-      </div>
-
-      {/* Mobile: lista simples */}
-      <div className="md:hidden flex flex-col gap-3 text-sm text-gray-500">
-        <div className="flex flex-wrap gap-2">{sources.map((s: any) => <span key={s.name} className={`${s.bg} ${s.border} border px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-700`}>{s.name}</span>)}</div>
-        <div className="flex flex-wrap gap-2">{audiences.map((a: any, i: number) => <span key={i} className="bg-slate-50 border border-slate-200 px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 truncate max-w-[160px]">{a.name}</span>)}</div>
-        <div className="flex flex-wrap gap-2">{destinations.map((d: any) => <span key={d.id} className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold">{d.label}</span>)}</div>
       </div>
     </motion.div>
   );
@@ -444,9 +496,10 @@ export function Overview() {
     <div className="max-w-5xl mx-auto space-y-12">
       {/* Hero */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, y: 8 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, margin: "-40px" }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
       >
         <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 py-10 md:py-12 relative overflow-hidden">
@@ -489,10 +542,17 @@ export function Overview() {
 
         {/* Bottom stats bar */}
         <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-gray-200 border-t border-gray-200">
-          {objectives.map((obj) => {
+          {objectives.map((obj, i) => {
             const Icon = obj.icon;
             return (
-              <div key={obj.label} className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-b md:border-b-0 border-gray-200 last:border-b-0 odd:border-r md:border-r-0">
+              <motion.div
+                key={obj.label}
+                initial={{ opacity: 0, y: 6 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: false, margin: "-40px" }}
+                transition={{ duration: 0.6, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-b md:border-b-0 border-gray-200 last:border-b-0 odd:border-r md:border-r-0"
+              >
                 <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg ${obj.bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${obj.color}`} />
                 </div>
@@ -500,7 +560,7 @@ export function Overview() {
                   <p className="text-[10px] md:text-xs text-gray-400 leading-none mb-1">{obj.label}</p>
                   <p className={`leading-none ${obj.color}`} style={{ fontWeight: 700, fontSize: "clamp(1rem, 2.5vw, 1.1rem)" }}>{obj.value}</p>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -508,9 +568,10 @@ export function Overview() {
 
       {/* Budget Allocation */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.05 }}
+        initial={{ opacity: 0, y: 8 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, margin: "-40px" }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden flex flex-col md:flex-row shadow-sm">
           <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-center">
@@ -531,7 +592,13 @@ export function Overview() {
                 <span className="text-sm text-gray-900" style={{ fontWeight: 600 }}>{metaPct}%</span>
               </div>
               <div className="w-full bg-gray-50 rounded-full h-2 border border-gray-100 overflow-hidden">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${metaPct}%` }}></div>
+                <motion.div
+                  className="bg-blue-600 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${metaPct}%` }}
+                  viewport={{ once: false, margin: "-40px" }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                />
               </div>
 
               <div className="flex items-center justify-between mt-4">
@@ -542,7 +609,13 @@ export function Overview() {
                 <span className="text-sm text-gray-900" style={{ fontWeight: 600 }}>{googlePct}%</span>
               </div>
               <div className="w-full bg-gray-50 rounded-full h-2 border border-gray-100 overflow-hidden">
-                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: `${googlePct}%` }}></div>
+                <motion.div
+                  className="bg-emerald-500 h-2 rounded-full"
+                  initial={{ width: 0 }}
+                  whileInView={{ width: `${googlePct}%` }}
+                  viewport={{ once: false, margin: "-40px" }}
+                  transition={{ duration: 0.8, ease: "easeOut", delay: 0.35 }}
+                />
               </div>
             </div>
           </div>
@@ -594,9 +667,10 @@ export function Overview() {
       {/* Geolocation */}
       {campaign?.geo?.coverage && (
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.22 }}
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: false, margin: "-40px" }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="bg-white rounded-2xl border border-gray-200 shadow-sm px-6 py-5"
         >
           <div className="flex items-center gap-2 mb-4">
@@ -626,9 +700,10 @@ export function Overview() {
 
       {/* Funnel Section */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        initial={{ opacity: 0, y: 8 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, margin: "-40px" }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -644,9 +719,10 @@ export function Overview() {
           {funnelStages.map((stage, i) => (
             <motion.div
               key={stage.step}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35, delay: 0.15 + i * 0.08 }}
+              initial={{ opacity: 0, y: 6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, margin: "-40px" }}
+              transition={{ duration: 0.6, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
               className="bg-white rounded-xl border border-gray-200 flex flex-col overflow-hidden hover:shadow-sm hover:border-gray-200 transition-all group"
             >
               {/* Top accent */}
@@ -691,9 +767,10 @@ export function Overview() {
 
       {/* Channels */}
       <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
+        initial={{ opacity: 0, y: 8 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: false, margin: "-40px" }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
       >
         <div className="flex items-center gap-3 mb-6">
           <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -706,9 +783,13 @@ export function Overview() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {channels.map((ch) => (
-            <div
+          {channels.map((ch, i) => (
+            <motion.div
               key={ch.path}
+              initial={{ opacity: 0, y: 8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, margin: "-40px" }}
+              transition={{ duration: 0.6, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] }}
               className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col hover:shadow-sm hover:border-gray-300 transition-all"
             >
               <div className="flex items-center gap-3 mb-4">
@@ -732,19 +813,25 @@ export function Overview() {
 
               <Link
                 to={ch.path}
-                className="flex items-center justify-between w-full bg-gray-50 hover:bg-blue-600 border border-gray-200 hover:border-blue-600 text-gray-700 hover:text-white px-4 py-2.5 rounded-lg transition-all group"
+                className={`
+                  flex items-center justify-between w-full px-5 py-3 rounded-xl transition-all group shadow-sm hover:shadow-lg border-2
+                  ${ch.accent === 'blue' 
+                    ? "bg-blue-50 border-blue-100 text-blue-600 hover:bg-blue-600 hover:border-blue-600 hover:text-white" 
+                    : "bg-emerald-50 border-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:border-emerald-600 hover:text-white"
+                  }
+                `}
               >
-                <span className="text-sm" style={{ fontWeight: 500 }}>Ver estratégia completa</span>
-                <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                <span className="text-sm" style={{ fontWeight: 700 }}>Ver estratégia completa</span>
+                <ArrowRight className={`w-4 h-4 transition-all group-hover:translate-x-1 ${ch.accent === 'blue' ? "text-blue-400 group-hover:text-white" : "text-emerald-400 group-hover:text-white"}`} />
               </Link>
-            </div>
+            </motion.div>
           ))}
         </div>
       </motion.div>
 
       {/* Timeline Section — removed */}
       {false && <motion.div
-        initial={{ opacity: 0, y: 16 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.25 }}
       >

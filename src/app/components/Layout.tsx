@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, Link, useLocation, useParams } from "react-router";
-import { BarChart2, TrendingUp, Globe, ChevronRight, ShieldCheck, LayoutDashboard, Megaphone, ChevronDown, Menu } from "lucide-react";
+import { BarChart2, TrendingUp, ChevronRight, ShieldCheck, LayoutDashboard, Megaphone, ChevronDown, Menu } from "lucide-react";
+import { MetaIcon, GoogleIcon } from "./BrandIcons";
 import { motion, AnimatePresence } from "motion/react";
 import { useIsMobile } from "./ui/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
@@ -30,13 +31,13 @@ const navItems: NavItem[] = [
       {
         path: "/meta-ads",
         label: "Meta Ads",
-        icon: Globe,
+        icon: MetaIcon,
         description: "Facebook & Instagram",
       },
       {
         path: "/google-ads",
         label: "Google Ads",
-        icon: TrendingUp,
+        icon: GoogleIcon,
         description: "Search & Display",
       },
     ],
@@ -151,7 +152,10 @@ export function Layout() {
                                 }
                               `}
                             >
-                              <ChildIcon className={`w-3.5 h-3.5 flex-shrink-0 ${isChildActive ? "text-white" : "text-gray-400 group-hover:text-gray-500"}`} />
+                              <ChildIcon 
+                                className={`w-3.5 h-3.5 flex-shrink-0 ${isChildActive ? "text-white" : "text-gray-400 group-hover:text-gray-500"}`} 
+                                color={isChildActive && child.label === "Meta Ads" ? "white" : undefined}
+                              />
                               <div className="flex-1 min-w-0">
                                 <p className="text-[13px] font-medium leading-tight">{child.label}</p>
                               </div>

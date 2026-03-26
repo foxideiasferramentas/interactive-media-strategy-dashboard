@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router";
 import { motion, AnimatePresence } from "motion/react";
 import { Search, Globe, Target, TrendingUp } from "lucide-react";
+import { GoogleIcon } from "./BrandIcons";
 import type { ElementType } from "react";
 import { FunnelSidebar } from "./FunnelSidebar";
-import { CreativeCard } from "./CreativeCard";
+import { CreativeCard, PMAX_TABS, PMaxTab } from "./CreativeCard";
 import { CreativeModal, type Creative } from "./CreativeModal";
 import { useStore } from "../data/store";
 import type { GoogleAudience, GoogleCreative } from "../data/types";
@@ -91,10 +92,10 @@ function EmptyState({ step }: { step: FunnelStep }) {
   };
   return (
     <div className="bg-white rounded-xl border border-gray-100 px-8 py-16 text-center">
-      <p className="text-gray-400 font-medium">
+      <p className="text-gray-400 font-medium text-lg">
         Nenhum público cadastrado para o {labels[step]}.
       </p>
-      <p className="text-sm text-gray-300 mt-1">
+      <p className="text-base text-gray-300 mt-2">
         Adicione públicos e criativos no Painel Admin → Editor de Estratégia.
       </p>
     </div>
@@ -168,8 +169,8 @@ export function GoogleAds() {
     <div className="max-w-6xl mx-auto pb-12 px-4 md:px-0">
       {/* Page Header */}
       <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-200 flex-shrink-0">
-          <TrendingUp className="w-5 h-5 text-white" />
+        <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm flex-shrink-0">
+          <GoogleIcon className="w-6 h-6" />
         </div>
         <div>
           <div className="flex items-center gap-2 mb-0.5">
@@ -179,11 +180,11 @@ export function GoogleAds() {
             >
               Google Ads
             </h1>
-            <span className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-full font-medium">
+            <span className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full font-medium">
               Search · Display · YouTube
             </span>
           </div>
-          <p className="text-sm text-gray-400">
+          <p className="text-base text-gray-400">
             Captura de intenção por palavras-chave, rede de display e vídeo
           </p>
         </div>
@@ -204,7 +205,9 @@ export function GoogleAds() {
 
       {campaign && (
         <div className="flex flex-col md:flex-row gap-6 items-start">
-          <FunnelSidebar active={activeStep} onChange={setActiveStep} filledSteps={filledSteps.length > 0 ? filledSteps : undefined} />
+          <div className="md:sticky md:top-24 z-10">
+            <FunnelSidebar active={activeStep} onChange={setActiveStep} filledSteps={filledSteps.length > 0 ? filledSteps : undefined} />
+          </div>
 
           <div className="flex-1 min-w-0">
             <AnimatePresence mode="wait">
@@ -221,9 +224,9 @@ export function GoogleAds() {
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-8 rounded-full ${colors.accent}`} />
                     <div>
-                      <p className="text-gray-900 font-semibold">{tagline}</p>
+                      <p className="text-gray-900 font-semibold text-lg">{tagline}</p>
                       {objective && (
-                        <p className="text-sm text-gray-400">{objective}</p>
+                        <p className="text-base text-gray-400 mt-0.5">{objective}</p>
                       )}
                     </div>
                   </div>
@@ -235,7 +238,7 @@ export function GoogleAds() {
                 ) : (
                   <>
                     <div>
-                      <p className="text-xs uppercase tracking-widest text-gray-400 mb-3 px-1">
+                      <p className="text-sm uppercase tracking-widest text-gray-400 mb-3 px-1 font-medium">
                         Públicos-Alvo
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 items-start">
@@ -269,33 +272,47 @@ export function GoogleAds() {
                           className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100"
                         >
                           <div className="flex items-center gap-2 mb-4">
-                            <p className="text-xs uppercase tracking-widest text-gray-500">
+                            <p className="text-sm uppercase tracking-widest text-gray-500">
                               Criativos para:
                             </p>
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors.badge}`}
+                              className={`text-sm px-3 py-1 rounded-md font-medium ${colors.badge}`}
                             >
                               {selectedAudience.title}
                             </span>
                           </div>
 
                           {selectedAudience.creatives.length === 0 ? (
-                            <p className="text-sm text-gray-400 text-center py-8">
+                            <p className="text-base text-gray-400 text-center py-8">
                               Nenhum criativo cadastrado para este público.
                             </p>
                           ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 items-start">
-                              {selectedAudience.creatives.map((creative, i) => {
+                            <div className="columns-1 sm:columns-2 xl:columns-3 gap-4 space-y-4">
+                              {selectedAudience.creatives.flatMap((creative) => {
                                 const c = toCreative(creative);
+                                const isPMax = c.format.includes("Performance Max") || c.format.includes("PMax");
+                                
+                                if (isPMax) {
+                                  return PMAX_TABS.map((tab: any) => ({
+                                    ...c,
+                                    displayId: `${c.id}-${tab.id}`,
+                                    forcedTab: tab.id as any
+                                  }));
+                                }
+                                
+                                return [{ ...c, displayId: c.id, forcedTab: undefined }];
+                              }).map((c, i) => {
                                 return (
-                                  <motion.div
-                                    key={creative.id}
+                                  <div key={c.displayId} className="break-inside-avoid mb-4">
+                                     <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.05 + i * 0.05 }}
+                                    transition={{ delay: 0.05 + i * 0.02 }}
                                   >
                                     <CreativeCard
                                       creative={c}
+                                      forcedPMaxTab={c.forcedTab}
+                                      initialOffset={i}
                                       onClick={() => setSelectedCreative(c)}
                                       accentClass={colors.accent}
                                       companyName={companyName}
@@ -303,7 +320,8 @@ export function GoogleAds() {
                                       companyLogo={companyLogo}
                                     />
                                   </motion.div>
-                                );
+                                    </div>
+                                   );
                               })}
                             </div>
                           )}
@@ -365,10 +383,10 @@ function AudiencePresentationCard({
       }`}
     >
       <div className="flex-1">
-        <h4 className="text-sm mb-1.5 text-gray-900 font-semibold">
+        <h4 className="text-base mb-1.5 text-gray-900 font-semibold">
           {audience.title}
         </h4>
-        <p className={`text-xs leading-relaxed text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}>
+        <p className={`text-sm leading-relaxed text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}>
           {audience.description}
         </p>
 
@@ -381,25 +399,25 @@ function AudiencePresentationCard({
               className="mt-3 pt-3 border-t border-gray-50 flex flex-wrap gap-1 overflow-hidden"
             >
               {audience.gender && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-blue-50/50 text-blue-600 rounded-md font-medium">
+                <span className="text-xs px-2 py-1 bg-blue-50/50 text-blue-600 rounded-md font-medium">
                   {audience.gender}
                 </span>
               )}
               {audience.ageRange && (
-                <span className="text-[9px] px-1.5 py-0.5 bg-violet-50/50 text-violet-600 rounded-md font-medium">
+                <span className="text-xs px-2 py-1 bg-violet-50/50 text-violet-600 rounded-md font-medium">
                   {audience.ageRange}
                 </span>
               )}
               {audience.interests && (
-                <div className="w-full mt-1">
-                  <p className="text-[8px] uppercase text-gray-400 font-bold mb-1">Interesses</p>
-                  <p className="text-[10px] text-gray-600 leading-tight">{audience.interests}</p>
+                <div className="w-full mt-2">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Interesses</p>
+                  <p className="text-xs text-gray-600 leading-tight">{audience.interests}</p>
                 </div>
               )}
               {audience.keywords && (
-                <div className="w-full mt-1">
-                  <p className="text-[8px] uppercase text-gray-400 font-bold mb-1">Keywords</p>
-                  <p className="text-[10px] text-emerald-600 leading-tight">🔑 {audience.keywords}</p>
+                <div className="w-full mt-2">
+                  <p className="text-[10px] uppercase text-gray-400 font-bold mb-1">Keywords</p>
+                  <p className="text-xs text-emerald-600 leading-tight">🔑 {audience.keywords}</p>
                 </div>
               )}
             </motion.div>
@@ -410,7 +428,7 @@ function AudiencePresentationCard({
       {hasDetails && (
         <button
           onClick={(e) => { e.stopPropagation(); onToggleExpand(!isExpanded); }}
-          className="mt-3 text-[10px] font-bold text-gray-400 hover:text-emerald-600 transition-colors self-start flex items-center gap-1"
+          className="mt-3 text-xs font-bold text-gray-400 hover:text-emerald-600 transition-colors self-start flex items-center gap-1"
         >
           {isExpanded ? "Ver menos" : "Ver detalhes"}
         </button>

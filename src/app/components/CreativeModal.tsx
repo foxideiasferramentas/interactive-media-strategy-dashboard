@@ -1,6 +1,6 @@
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { X, FileText, Pencil, Check, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, Globe, Trash2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { useEffect, useState, useRef, useCallback } from "react";
 import { getYouTubeId } from "../utils/youtube";
 import { normalizeMediaUrl, isDirectVideoUrl } from "../utils/media";
 import { useIsMobile } from "./ui/use-mobile";
@@ -112,6 +112,13 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
     if (creative) {
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
+      
+      // Sincronizar aba se vier de um card desmembrado
+      if ((creative as any).forcedTab) {
+        setPmaxTab((creative as any).forcedTab);
+      } else {
+        setPmaxTab("search");
+      }
     }
     return () => {
       document.removeEventListener("keydown", handleEscape);
@@ -142,10 +149,7 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
     setPmaxAssetIdx((i) => i + 1);
     if (pmaxComboRef.current >= COMBOS_PER_TAB) {
       pmaxComboRef.current = 0;
-      setPmaxTab((prev) => {
-        const idx = PMAX_TABS.findIndex((t) => t.id === prev);
-        return PMAX_TABS[(idx + 1) % PMAX_TABS.length].id;
-      });
+      // Removida a troca automática de abas no modal para manter o foco no formato selecionado
     }
     progressRef.current = 0;
     lastTimeRef.current = null;
@@ -289,10 +293,10 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
             </div>
 
             {/* Content */}
-            <div className="flex flex-col lg:flex-row overflow-y-auto lg:overflow-hidden flex-1">
-              {/* Left: Preview */}
-              <div className="w-full lg:w-2/5 flex-shrink-0 bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col">
-                <div className="flex-1 overflow-y-auto w-full p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-[400px_minmax(0,1fr)] overflow-hidden flex-1 min-h-0">
+              {/* Left: Preview Area */}
+              <div className="bg-gray-50 border-b lg:border-b-0 lg:border-r border-gray-100 flex flex-col min-h-0 overflow-hidden">
+                <div className="flex-1 overflow-y-auto overflow-x-hidden w-full p-6">
                   {working && (() => {
                      const isMeta = working.format === "Image" || working.format === "Video" || working.format === "Carousel";
                      if (isMeta) {
@@ -358,7 +362,7 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                              <div className="flex items-center gap-2 mb-2.5">
                                <div className="w-6 h-6 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative">
                                  <Globe className="w-3 h-3 text-slate-400" />
-                                 {companyLogo && <img src={normalizeMediaUrl(companyLogo)} className="absolute inset-0 w-full h-full object-cover" alt="" />}
+                                 {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
                                </div>
                                <span className="text-xs text-gray-900 font-medium">{displayCompany}</span>
                              </div>
@@ -432,7 +436,7 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
               </div>
 
               {/* Right: Info/Edit */}
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-white">
+              <div className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden p-6 space-y-6 bg-white">
                 {!readOnly && (
                   <div>
                     <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-6">Configurações Gerais</h4>
@@ -481,9 +485,6 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                       <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-4">Descrições</h4>
                       <EditableList
                         items={working.bodies || []}
-                                 activeIndices={[pmaxBodies.length > 0 ? n % pmaxBodies.length : 0]}
-                                 activeLabel="Ativa "
-                                 activeColor="border-emerald-200 bg-emerald-50/30"
                         onChange={(bodies) => updateDraft({ bodies })}
                         activeIndices={[bodyIndex]}
                         activeColor="border-emerald-200 bg-emerald-50/30"
@@ -629,7 +630,7 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
 
 // ─── Internal Meta Preview Helper ─────────────────────────────────────────────
 
-function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx, carouselIdx, onPrev, onNext, totalItems }: any) {
+const MetaPreviewBody = React.memo(function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx, carouselIdx, onPrev, onNext, totalItems }: any) {
   const isCarousel = creative.format === "Carousel";
   const currentCard = isCarousel ? creative.carouselCards[carouselIdx] : null;
   const images = creative.videos?.length
@@ -640,7 +641,7 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
     ? [creative.imageUrl]
     : [];
   const src = isCarousel ? currentCard?.imageUrl : images[imgIdx];
-  const normalized = normalizeMediaUrl(src || "");
+  const normalized = useMemo(() => normalizeMediaUrl(src || ""), [src]);
   const [muted, setMuted] = useState(true);
   const isVideo = isDirectVideoUrl(src || "");
 
@@ -656,9 +657,18 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
     return (
       <div className="relative overflow-hidden bg-black" style={{ aspectRatio: "9 / 16" }}>
         {isVideo ? (
-          <video src={normalized} className="w-full h-full object-cover" muted={muted} autoPlay loop playsInline />
+          <video
+            src={normalized}
+            className="w-full h-full object-cover bg-black/10"
+            muted={muted}
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            crossOrigin="anonymous"
+          />
         ) : (
-          <img src={normalized} className="w-full h-full object-cover" alt="" />
+          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
         )}
         <Nav />
         {isVideo && (
@@ -676,7 +686,7 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
               <Globe className="w-3.5 h-3.5 text-white/40" />
-              {companyLogo && <img src={normalizeMediaUrl(companyLogo)} className="absolute inset-0 w-full h-full object-cover" alt="" />}
+              {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
             </div>
             <div>
               <p className="text-[11px] font-bold text-white leading-none">{companyName}</p>
@@ -703,9 +713,18 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
     return (
       <div className="relative overflow-hidden bg-black" style={{ aspectRatio: "9 / 16" }}>
         {isVideo ? (
-          <video src={normalized} className="w-full h-full object-cover" muted={muted} autoPlay loop playsInline />
+          <video
+            src={normalized}
+            className="w-full h-full object-cover bg-black/10"
+            muted={muted}
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            crossOrigin="anonymous"
+          />
         ) : (
-          <img src={normalized} className="w-full h-full object-cover" alt="" />
+          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
         )}
         <Nav />
         {/* Right actions */}
@@ -725,7 +744,7 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
               <div className="flex items-center gap-1.5 mb-1">
                 <div className="w-5 h-5 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
                   <Globe className="w-2.5 h-2.5 text-white/40" />
-                  {companyLogo && <img src={normalizeMediaUrl(companyLogo)} className="absolute inset-0 w-full h-full object-cover" alt="" />}
+                  {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
                 </div>
                 <span className="text-[10px] font-bold text-white">{companyName}</span>
                 <span className="text-[9px] text-white/50">· Patrocinado</span>
@@ -756,7 +775,7 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative">
             <Globe className="w-4 h-4 text-slate-300" />
-            {companyLogo && <img src={normalizeMediaUrl(companyLogo)} className="absolute inset-0 w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }} />}
+            {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }} />}
           </div>
           <div>
             <p className="text-[12px] font-bold text-gray-900 leading-none">{companyName}</p>
@@ -776,9 +795,18 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
       {/* Media — 4:5 */}
       <div className="relative overflow-hidden bg-slate-100" style={{ aspectRatio: "4 / 5" }}>
         {isVideo ? (
-          <video src={normalized} className="w-full h-full object-cover" muted={muted} autoPlay loop playsInline />
+          <video
+            src={normalized}
+            className="w-full h-full object-cover bg-black/10"
+            muted={muted}
+            autoPlay
+            loop
+            playsInline
+            preload="metadata"
+            crossOrigin="anonymous"
+          />
         ) : (
-          <img src={normalized} className="w-full h-full object-cover" alt="" />
+          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
         )}
         <Nav />
         {isVideo && (
@@ -801,7 +829,7 @@ function MetaPreviewBody({ placement, creative, companyName, companyLogo, imgIdx
       </div>
     </div>
   );
-}
+});
 
 function nextCarousel(curr: number, total: number) { return total > 0 ? (curr + 1) % total : 0; }
 function prevCarousel(curr: number, total: number) { return total > 0 ? (curr - 1 + total) % total : 0; }

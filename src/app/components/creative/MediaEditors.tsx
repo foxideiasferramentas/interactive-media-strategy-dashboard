@@ -55,7 +55,7 @@ export function FocalPointEditor({
           onMouseDown={(e) => { dragging.current = true; updateFromEvent(e); }}
           onClick={updateFromEvent}
         >
-          <img src={normalizeMediaUrl(src)} alt="" className="w-full h-auto block pointer-events-none" />
+          <img src={normalizeMediaUrl(src)} loading="lazy" alt="" className="w-full h-auto block pointer-events-none" />
           <div className="absolute inset-0 bg-black/30 pointer-events-none" />
           <div
             className="absolute pointer-events-none"
@@ -146,16 +146,16 @@ export function EditableImageList({
         onClose={() => setEditingFocalUrl(null)}
       />
     )}
-    <div className="space-y-2">
+    <div className="space-y-2 w-full min-w-0 overflow-hidden">
       <div className="flex items-center gap-2">
         <AlignLeft className="w-3.5 h-3.5 text-gray-400" />
         <label className="text-[10px] uppercase tracking-widest text-gray-400">{label} ({images.length})</label>
       </div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-2">
         {images.map((src, i) => {
           const fp = focalFor(src);
           return (
-            <div key={i} className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+            <div key={i} className="group relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 min-w-0">
               <img
                 src={normalizeMediaUrl(src)}
                 alt=""
@@ -259,14 +259,14 @@ export function EditableVideoList({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full min-w-0 overflow-hidden">
       <div className="flex items-center gap-2">
         <Video className="w-3.5 h-3.5 text-gray-400" />
         <label className="text-[10px] uppercase tracking-widest text-gray-400">Vídeos ({videos.length})</label>
       </div>
       <div className="space-y-2">
         {videos.map((vid, i) => (
-          <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+          <div key={i} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 min-w-0 overflow-hidden">
             <div className="w-7 h-7 rounded-md bg-gray-200 flex items-center justify-center shrink-0">
               <Video className="w-3.5 h-3.5 text-gray-400" />
             </div>
