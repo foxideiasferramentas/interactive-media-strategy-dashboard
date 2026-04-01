@@ -132,10 +132,11 @@ interface PMaxPreviewProps {
   lh: string;
   body: string;
   totalImages: number;
+  companyLogo?: string;
 }
 
-export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setActiveTab, assetIdx, img, h, lh, body, totalImages }: PMaxPreviewProps) {
-  const logo     = creative.logos?.[0];
+export function PMaxPreview({ creative, companyName, displayUrl, activeTab, setActiveTab, assetIdx, img, h, lh, body, totalImages, companyLogo }: PMaxPreviewProps) {
+  const logo     = creative.logos?.[0] || (companyLogo ? normalizeMediaUrl(companyLogo) : undefined);
   const videos   = creative.videos ?? [];
   const videoUrl = videos[assetIdx % Math.max(videos.length, 1)];
   const cta      = creative.cta || "Saiba Mais";

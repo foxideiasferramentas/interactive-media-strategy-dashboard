@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Layers,
@@ -23,8 +23,12 @@ import { normalizeMediaUrl } from "../utils/media";
 import type {
   MetaCreative,
   GoogleCreative,
+  SavedAudience,
   Sitelink,
   SavedSitelinkSet,
+  StructuredSnippet,
+  CallExtension,
+  StageKey,
   MetaCarouselCard,
 } from "../data/types";
 
@@ -99,12 +103,14 @@ export function MetaCreativeEditor({
 }) {
   const [open, setOpen] = useState(!collapsible || initialOpen);
   const [justSaved, setJustSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSave = (e: React.MouseEvent) => {
     e.stopPropagation();
     onSave?.();
     setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2000);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
   };
 
   const formatIcons: Record<MetaCreative["format"], React.ElementType> = {
@@ -442,6 +448,390 @@ export function MetaCreativeEditor({
   );
 }
 
+// ─── Sitelink List Editor ─────────────────────────────────────────────────────
+
+export function SitelinkListEditor({
+  sitelinks,
+  onChange,
+  maxCount = 4,
+}: {
+  sitelinks: Sitelink[];
+  onChange: (s: Sitelink[]) => void;
+  maxCount?: number;
+}) {
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [showSaveForm, setShowSaveForm] = useState(false);
+  const [saveLabel, setSaveLabel] = useState("");
+  const { savedSitelinkSets, saveSitelinkSet, deleteSavedSitelinkSet } = useStore();
+
+  const addSitelink = () => {
+    const sl: Sitelink = { id: uid(), title: "Novo Link", description: "Descrição do link" };
+    onChange([...sitelinks, sl]);
+  };
+
+  const updateSitelink = (index: number, field: keyof Sitelink, value: string) => {
+    const updated = sitelinks.map((sl, i) => i === index ? { ...sl, [field]: value } : sl);
+    onChange(updated);
+  };
+
+  const removeSitelink = (index: number) => {
+    onChange(sitelinks.filter((_, i) => i !== index));
+  };
+
+  const loadSet = (set: SavedSitelinkSet) => {
+    onChange(set.sitelinks.map((sl) => ({ ...sl, id: uid() })));
+    setShowLibrary(false);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+          Extensões de Sitelink (até {maxCount})
+        </label>
+        <button
+          onClick={() => setShowLibrary(true)}
+          className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
+        >
+          <Library className="w-3 h-3" /> Da Biblioteca
+        </button>
+      </div>
+
+      {sitelinks.map((sl, i) => (
+        <div key={sl.id} className="border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50/50">
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={sl.title}
+              placeholder="Título do link"
+              onChange={(e) => updateSitelink(i, "title", e.target.value)}
+              className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none font-medium"
+            />
+            <button
+              onClick={() => removeSitelink(i)}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <input
+            type="text"
+            value={sl.description}
+            placeholder="Descrição curta"
+            onChange={(e) => updateSitelink(i, "description", e.target.value)}
+            className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none text-slate-500"
+          />
+        </div>
+      ))}
+
+      {sitelinks.length < maxCount && (
+        <button
+          onClick={addSitelink}
+          className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+        >
+          <Plus className="w-3.5 h-3.5" /> Adicionar Sitelink
+        </button>
+      )}
+
+      {sitelinks.length > 0 && (
+        <div className="pt-1">
+          {showSaveForm ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={saveLabel}
+                onChange={(e) => setSaveLabel(e.target.value)}
+                placeholder="Nome do conjunto (ex: Serviços Principais)"
+                className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/10 outline-none"
+              />
+              <button
+                onClick={() => {
+                  if (saveLabel.trim()) {
+                    saveSitelinkSet(saveLabel.trim(), sitelinks);
+                    setSaveLabel("");
+                    setShowSaveForm(false);
+                  }
+                }}
+                className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors"
+              >
+                Salvar
+              </button>
+              <button
+                onClick={() => {
+                  setShowSaveForm(false);
+                  setSaveLabel("");
+                }}
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowSaveForm(true)}
+              className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
+            >
+              <Bookmark className="w-3 h-3" /> Salvar conjunto na Biblioteca
+            </button>
+          )}
+        </div>
+      )}
+
+      <AnimatePresence>
+        {showLibrary && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLibrary(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
+            >
+              <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                    <Library className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">Biblioteca de Sitelinks</p>
+                    <p className="text-xs text-slate-400">
+                      {savedSitelinkSets.length} conjunto(s) salvo(s)
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowLibrary(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4 max-h-80 overflow-y-auto space-y-2">
+                {savedSitelinkSets.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-8">
+                    Nenhum conjunto salvo ainda.
+                  </p>
+                ) : (
+                  savedSitelinkSets.map((set) => (
+                    <div
+                      key={set.id}
+                      className="flex items-start gap-3 p-4 border border-slate-200 rounded-2xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{set.label}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{set.sitelinks.length} sitelink(s)</p>
+                        <div className="mt-2 space-y-0.5">
+                          {set.sitelinks.slice(0, 3).map((sl) => (
+                            <p key={sl.id} className="text-[11px] text-slate-500 truncate">
+                              · {sl.title}
+                            </p>
+                          ))}
+                          {set.sitelinks.length > 3 && (
+                            <p className="text-[11px] text-slate-400">
+                              +{set.sitelinks.length - 3} mais
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <button
+                          onClick={() => loadSet(set)}
+                          className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors"
+                        >
+                          Usar
+                        </button>
+                        <button
+                          onClick={() => deleteSavedSitelinkSet(set.id)}
+                          className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ─── Structured Snippet Editor ────────────────────────────────────────────────
+
+export function StructuredSnippetEditor({
+  snippets,
+  onChange,
+}: {
+  snippets: StructuredSnippet[];
+  onChange: (s: StructuredSnippet[]) => void;
+}) {
+  const HEADER_OPTIONS = [
+    "Serviços",
+    "Marcas",
+    "Cursos",
+    "Destinos",
+    "Hotéis",
+    "Seguros",
+    "Modelos",
+    "Programas",
+    "Bairros",
+    "Estilos",
+  ];
+
+  const addSnippet = () => {
+    onChange([...snippets, { id: uid(), header: HEADER_OPTIONS[0], values: [""] }]);
+  };
+
+  const updateSnippet = (index: number, field: keyof StructuredSnippet, value: any) => {
+    const updated = snippets.map((s, i) => (i === index ? { ...s, [field]: value } : s));
+    onChange(updated);
+  };
+
+  const removeSnippet = (index: number) => {
+    onChange(snippets.filter((_, i) => i !== index));
+  };
+
+  const updateValue = (sIdx: number, vIdx: number, val: string) => {
+    const updatedValues = [...snippets[sIdx].values];
+    updatedValues[vIdx] = val;
+    updateSnippet(sIdx, "values", updatedValues);
+  };
+
+  const addValue = (sIdx: number) => {
+    if (snippets[sIdx].values.length < 10) {
+      updateSnippet(sIdx, "values", [...snippets[sIdx].values, ""]);
+    }
+  };
+
+  const removeValue = (sIdx: number, vIdx: number) => {
+    const updatedValues = snippets[sIdx].values.filter((_, i) => i !== vIdx);
+    updateSnippet(sIdx, "values", updatedValues.length ? updatedValues : [""]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+          Snippets Estruturados
+        </label>
+      </div>
+
+      {snippets.map((snip, sIdx) => (
+        <div
+          key={snip.id}
+          className="border border-slate-200 rounded-xl p-4 space-y-3 bg-slate-50/50"
+        >
+          <div className="flex items-center gap-3">
+            <select
+              value={snip.header}
+              onChange={(e) => updateSnippet(sIdx, "header", e.target.value)}
+              className="px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500/10"
+            >
+              {HEADER_OPTIONS.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+            <div className="flex-1" />
+            <button
+              onClick={() => removeSnippet(sIdx)}
+              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {snip.values.map((val, vIdx) => (
+              <div key={vIdx} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={val}
+                  placeholder="Valor"
+                  onChange={(e) => updateValue(sIdx, vIdx, e.target.value)}
+                  className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-blue-500/10"
+                />
+                <button
+                  onClick={() => removeValue(sIdx, vIdx)}
+                  className="p-1.5 text-slate-300 hover:text-red-500"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          {snip.values.length < 10 && (
+            <button
+              onClick={() => addValue(sIdx)}
+              className="text-[10px] font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> Adicionar Valor
+            </button>
+          )}
+        </div>
+      ))}
+
+      {snippets.length < 1 && (
+        <button
+          onClick={addSnippet}
+          className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
+        >
+          <Plus className="w-3.5 h-3.5" /> Adicionar Snippet Estruturado
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─── Call Extension Editor ────────────────────────────────────────────────────
+
+export function CallExtensionEditor({
+  extension,
+  onChange,
+}: {
+  extension?: CallExtension;
+  onChange: (e?: CallExtension) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+        Extensão de Chamada
+      </label>
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2">
+          <span className="text-sm font-bold text-slate-400">🇧🇷 +55</span>
+          <input
+            type="tel"
+            value={extension?.phone || ""}
+            placeholder="(00) 00000-0000"
+            onChange={(e) => onChange({ phone: e.target.value, country: "BR" })}
+            className="flex-1 bg-transparent text-sm outline-none font-medium text-slate-700"
+          />
+        </div>
+        {extension?.phone && (
+          <button
+            onClick={() => onChange(undefined)}
+            className="p-2.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Google Creative Editor ───────────────────────────────────────────────────
 
 export function GoogleCreativeEditor({
@@ -700,167 +1090,10 @@ export function GoogleCreativeEditor({
                     )}
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
-                        Extensões de Sitelink (até 4)
-                      </label>
-                      <button
-                        onClick={() => setShowSitelinkLibrary(true)}
-                        className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 flex items-center gap-1"
-                      >
-                        <Library className="w-3 h-3" /> Da Biblioteca
-                      </button>
-                    </div>
-
-                    {sitelinks.map((sl, i) => (
-                      <div key={sl.id} className="border border-slate-200 rounded-xl p-3 space-y-2 bg-slate-50/50">
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            value={sl.title}
-                            placeholder="Título do link"
-                            onChange={(e) => updateSitelink(i, "title", e.target.value)}
-                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none font-medium"
-                          />
-                          <button
-                            onClick={() => removeSitelink(i)}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <input
-                          type="text"
-                          value={sl.description}
-                          placeholder="Descrição curta"
-                          onChange={(e) => updateSitelink(i, "description", e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500/10 outline-none text-slate-500"
-                        />
-                      </div>
-                    ))}
-
-                    {sitelinks.length < 4 && (
-                      <button
-                        onClick={addSitelink}
-                        className="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Adicionar Sitelink
-                      </button>
-                    )}
-
-                    {sitelinks.length > 0 && (
-                      <div className="pt-1">
-                        {showSaveSlForm ? (
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={saveSlLabel}
-                              onChange={(e) => setSaveSlLabel(e.target.value)}
-                              placeholder="Nome do conjunto (ex: Serviços Principais)"
-                              className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/10 outline-none"
-                            />
-                            <button
-                              onClick={() => {
-                                if (saveSlLabel.trim()) {
-                                  saveSitelinkSet(saveSlLabel.trim(), sitelinks);
-                                  setSaveSlLabel("");
-                                  setShowSaveSlForm(false);
-                                }
-                              }}
-                              className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors"
-                            >
-                              Salvar
-                            </button>
-                            <button
-                              onClick={() => { setShowSaveSlForm(false); setSaveSlLabel(""); }}
-                              className="p-2 text-slate-400 hover:text-slate-600 rounded-lg"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => setShowSaveSlForm(true)}
-                            className="text-[10px] font-bold text-slate-400 hover:text-emerald-600 flex items-center gap-1.5 transition-colors"
-                          >
-                            <Bookmark className="w-3 h-3" /> Salvar conjunto na Biblioteca
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <AnimatePresence>
-                    {showSitelinkLibrary && (
-                      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setShowSitelinkLibrary(false)}
-                          className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                          className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden"
-                        >
-                          <div className="px-6 py-5 border-b border-slate-200 flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                <Library className="w-4 h-4" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-bold text-slate-900">Biblioteca de Sitelinks</p>
-                                <p className="text-xs text-slate-400">{savedSitelinkSets.length} conjunto(s) salvo(s)</p>
-                              </div>
-                            </div>
-                            <button onClick={() => setShowSitelinkLibrary(false)} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl hover:bg-slate-100 transition-colors">
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                          <div className="p-4 max-h-80 overflow-y-auto space-y-2">
-                            {savedSitelinkSets.length === 0 ? (
-                              <p className="text-sm text-slate-400 text-center py-8">Nenhum conjunto salvo ainda.</p>
-                            ) : (
-                              savedSitelinkSets.map((set) => (
-                                <div key={set.id} className="flex items-start gap-3 p-4 border border-slate-200 rounded-2xl hover:border-emerald-300 hover:bg-emerald-50/30 transition-all group">
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-slate-900 truncate">{set.label}</p>
-                                    <p className="text-xs text-slate-400 mt-0.5">{set.sitelinks.length} sitelink(s)</p>
-                                    <div className="mt-2 space-y-0.5">
-                                      {set.sitelinks.slice(0, 3).map((sl) => (
-                                        <p key={sl.id} className="text-[11px] text-slate-500 truncate">· {sl.title}</p>
-                                      ))}
-                                      {set.sitelinks.length > 3 && (
-                                        <p className="text-[11px] text-slate-400">+{set.sitelinks.length - 3} mais</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col gap-1.5 shrink-0">
-                                    <button
-                                      onClick={() => loadSitelinkSet(set)}
-                                      className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-colors"
-                                    >
-                                      Usar
-                                    </button>
-                                    <button
-                                      onClick={() => deleteSavedSitelinkSet(set.id)}
-                                      className="p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </button>
-                                  </div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </motion.div>
-                      </div>
-                    )}
-                  </AnimatePresence>
+                  <SitelinkListEditor
+                    sitelinks={creative.sitelinks ?? []}
+                    onChange={(updated) => onChange({ ...creative, sitelinks: updated })}
+                  />
                 </>
               ) : isPMax ? (
                 <>

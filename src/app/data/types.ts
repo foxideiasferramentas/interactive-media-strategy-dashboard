@@ -32,6 +32,17 @@ export interface Sitelink {
   description: string;
 }
 
+export interface StructuredSnippet {
+  id: string;
+  header: string;
+  values: string[];
+}
+
+export interface CallExtension {
+  phone: string;
+  country: string;
+}
+
 export interface GoogleCreative {
   id: string;
   name: string;
@@ -124,11 +135,13 @@ export interface ConversionDestination {
   type?: "conversion" | "retargeting";
   event?: string; // ex: "Purchase", "Lead", "ViewContent"
   note?: string;
+  parentId?: string; // Para criar a hierarquia/vínculo entre destinos
 }
 
 export interface Campaign {
   id: string;
   name: string;
+  slug?: string;
   clientId: string;
   status: "active" | "paused" | "planning";
   budget: number;
@@ -164,6 +177,9 @@ export interface Campaign {
     bottom: MetaAudience[];
   };
   google: {
+    sitelinks?: Sitelink[];
+    structuredSnippets?: StructuredSnippet[];
+    callExtension?: CallExtension;
     top: GoogleAudience[];
     middle: GoogleAudience[];
     bottom: GoogleAudience[];

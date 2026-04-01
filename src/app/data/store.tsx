@@ -21,6 +21,7 @@ import type {
 } from "./types";
 import { supabase } from "./supabase";
 import { toast } from "sonner";
+import { slugify } from "../utils/slug";
 
 // ─── Store interface ──────────────────────────────────────────────────────────
 
@@ -189,7 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const getCampaign = useCallback(
-    (id: string) => campaigns.find((c) => c.id === id),
+    (idOrSlug: string) => campaigns.find((c) => c.id === idOrSlug || c.slug === idOrSlug),
     [campaigns]
   );
 
@@ -267,7 +268,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const addCampaign = useCallback(
     (data: Omit<Campaign, "id">): Campaign => {
-      const campaign: Campaign = { ...data, id: `camp-${Date.now()}` };
+      const id = `camp-${Date.now()}`;
+      const baseSlug = slugify(data.name || "campanha");
+      const slug = campaigns.some(c => c.slug === baseSlug) 
+        ? `${baseSlug}-${Math.random().toString(36).slice(2, 5)}`
+        : baseSlug;
+
+      const campaign: Campaign = { ...data, id, slug };
       
       const updatedClients = clients.map((c) =>
         c.id === campaign.clientId
@@ -330,7 +337,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
         const affected = updatedClients.find((c) => c.id === campaign.clientId);
         if (affected) {
-          supabase.from("ims_clients").update(affected).eq("id", affected.id).then();
+          supabase.from("ims_clients").update(affected).eq("id", affected.id).then(({ error }) => {
+            if (error) console.error("Error updating client after campaign delete", error);
+          });
         }
       }
       
@@ -352,9 +361,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setActiveCampaignIdState(id);
     
     if (id) {
-      supabase.from("ims_settings").upsert({ key: "activeId", value: id }).then();
+      supabase.from("ims_settings").upsert({ key: "activeId", value: id }).then(({ error }) => {
+        if (error) console.error("Error saving active campaign", error);
+      });
     } else {
-      supabase.from("ims_settings").delete().eq("key", "activeId").then();
+      supabase.from("ims_settings").delete().eq("key", "activeId").then(({ error }) => {
+        if (error) console.error("Error clearing active campaign", error);
+      });
     }
   }, []);
 
@@ -401,23 +414,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const deleteSavedAudience = useCallback((id: string) => {
     setSavedAudiences((prev) => prev.filter((a) => a.id !== id));
-    supabase.from("ims_saved_audiences").delete().eq("id", id).then();
+    supabase.from("ims_saved_audiences").delete().eq("id", id).then(({ error }) => {
+      if (error) console.error("Error deleting saved audience", error);
+    });
   }, []);
 
   const saveSitelinkSet = useCallback((label: string, sitelinks: Sitelink[]) => {
     const entry: SavedSitelinkSet = {
-      id: `saved-sl-${Date.now()}`,
+      id: crypto.randomUUID(),
       label,
       sitelinks,
       savedAt: new Date().toISOString(),
     };
     setSavedSitelinkSets((prev) => [entry, ...prev]);
-    supabase.from("ims_saved_sitelink_sets").insert(entry).then();
+    supabase.from("ims_saved_sitelink_sets").insert(entry).then(({ error }) => {
+      if (error) console.error("Error saving sitelink set", error);
+    });
   }, []);
 
   const deleteSavedSitelinkSet = useCallback((id: string) => {
     setSavedSitelinkSets((prev) => prev.filter((s) => s.id !== id));
-    supabase.from("ims_saved_sitelink_sets").delete().eq("id", id).then();
+    supabase.from("ims_saved_sitelink_sets").delete().eq("id", id).then(({ error }) => {
+      if (error) console.error("Error deleting sitelink set", error);
+    });
   }, []);
 
   const saveCreative = useCallback(
@@ -427,21 +446,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       creative: MetaCreative | GoogleCreative
     ) => {
       const entry: SavedCreative = {
-        id: `saved-cr-${Date.now()}`,
+        id: crypto.randomUUID(),
         label,
         platform,
         creative,
         savedAt: new Date().toISOString(),
       };
       setSavedCreatives((prev) => [entry, ...prev]);
-      supabase.from("ims_saved_creatives").insert(entry).then();
+      supabase.from("ims_saved_creatives").insert(entry).then(({ error }) => {
+        if (error) console.error("Error saving creative", error);
+      });
     },
     []
   );
 
   const deleteSavedCreative = useCallback((id: string) => {
     setSavedCreatives((prev) => prev.filter((c) => c.id !== id));
-    supabase.from("ims_saved_creatives").delete().eq("id", id).then();
+    supabase.from("ims_saved_creatives").delete().eq("id", id).then(({ error }) => {
+      if (error) console.error("Error deleting saved creative", error);
+    });
   }, []);
 
   // ─── Loading screen ──────────────────────────────────────────────────────────

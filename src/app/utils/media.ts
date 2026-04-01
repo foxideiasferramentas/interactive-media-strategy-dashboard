@@ -4,18 +4,26 @@
  * Outros provedores podem ser adicionados aqui no futuro.
  */
 
-// Cache de módulo — evita reprocessar a mesma URL repetidamente
+// Cache de módulo — evita reprocessar a mesma URL repetidamente (máx 500 entradas)
 const _urlCache = new Map<string, string>();
+const URL_CACHE_MAX = 500;
 
 /**
  * Retorna true se a URL aponta para um arquivo de vídeo direto (não YouTube).
  */
 export function isDirectVideoUrl(url?: string): boolean {
   if (!url) return false;
-  // Qualquer URL do Dropbox é tratada como vídeo direto (proteção contra URLs sem extensão)
-  if (url.includes("dropbox.com") || url.includes("dropboxusercontent.com")) return true;
   const normalized = normalizeMediaUrl(url);
-  return /\.(mp4|webm|mov|m4v)(\?|$)/i.test(normalized);
+  // Se tem extensão de IMAGEM, definitivamente não é vídeo direto
+  if (/\.(jpg|jpeg|png|gif|webp|avif|heic|tiff)(\?|$)/i.test(normalized)) return false;
+  // Se tem extensão de vídeo, é vídeo.
+  if (/\.(mp4|webm|mov|m4v)(\?|$)/i.test(normalized)) return true;
+  // Se for Dropbox ou link raw/download e não for imagem, tratamos como vídeo
+  const lower = url.toLowerCase();
+  if (lower.includes("dropbox.com") || lower.includes("dropboxusercontent.com") || lower.includes("raw=1") || lower.includes("dl=1")) {
+    return true; // Já descartamos imagens na linha 18
+  }
+  return false;
 }
 
 export function normalizeMediaUrl(url?: string): string {
@@ -44,6 +52,9 @@ export function normalizeMediaUrl(url?: string): string {
     }
   }
 
+  if (_urlCache.size >= URL_CACHE_MAX) {
+    _urlCache.delete(_urlCache.keys().next().value!);
+  }
   _urlCache.set(url, result);
   return result;
 }

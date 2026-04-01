@@ -1,6 +1,6 @@
 import { Link, useParams } from "react-router";
-import { motion } from "motion/react";
-import { useRef, useEffect, useState, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   Target,
@@ -19,8 +19,52 @@ import {
   ShoppingBag,
   Phone,
 } from "lucide-react";
+import { Campaign, StageKey, ConversionDestination } from "../data/types";
 import { useStore } from "../data/store";
 import { MetaIcon, GoogleIcon } from "./BrandIcons";
+
+const Tooltip = ({ text, children, position = "top" }: { text: string; children: React.ReactNode; position?: "top" | "bottom" | "left" | "right" }) => {
+  const [show, setShow] = useState(false);
+  
+  const posClasses = {
+    top: "bottom-full left-1/2 -translate-x-1/2 mb-2",
+    bottom: "top-full left-1/2 -translate-x-1/2 mt-2",
+    left: "right-full top-1/2 -translate-y-1/2 mr-2",
+    right: "left-full top-1/2 -translate-y-1/2 ml-2"
+  };
+
+  const arrowClasses = {
+    top: "top-full left-1/2 -translate-x-1/2 border-t-slate-900/95",
+    bottom: "bottom-full left-1/2 -translate-x-1/2 border-b-slate-900/95",
+    left: "left-full top-1/2 -translate-y-1/2 border-l-slate-900/95",
+    right: "right-full top-1/2 -translate-y-1/2 border-r-slate-900/95"
+  };
+
+  return (
+    <div className="relative group/tt flex items-center" onMouseEnter={() => setShow(true)} onMouseLeave={() => setShow(false)}>
+      {children}
+      <AnimatePresence>
+        {show && (
+          <motion.div
+            initial={{ 
+              opacity: 0, 
+              scale: 0.98, 
+              y: position === "top" ? 5 : position === "bottom" ? -5 : 0,
+              x: position === "left" ? 5 : position === "right" ? -5 : 0 
+            }}
+            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.18, ease: "easeOut" }}
+            className={`absolute ${posClasses[position]} px-2 py-1.5 bg-slate-900/90 text-slate-100 text-[10px] leading-snug rounded-md shadow-lg z-[100] w-36 md:w-40 text-center pointer-events-none border border-slate-700/50 backdrop-blur-md font-normal`}
+          >
+            {text}
+            <div className={`absolute border-4 border-transparent ${arrowClasses[position]}`} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 const channels = [
   {
@@ -106,7 +150,7 @@ function DestIcon({ dest }: { dest: any }) {
 
 function MediaFlowMap({ campaign }: { campaign: any }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [paths, setPaths] = useState<{ d: string; color: string; key: string }[]>([]);
+  const [paths, setPaths] = useState<{ d: string; color: string; key: string; retargeting?: boolean; weight?: number }[]>([]);
   const [isMobile, setIsMobile] = useState(typeof window !== "undefined" ? window.innerWidth < 768 : false);
 
   useEffect(() => {
@@ -140,9 +184,12 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
   const hasFlowFilter = allAudiences.some(a => a.showInFlow);
   const audiences = (hasFlowFilter ? allAudiences.filter(a => a.showInFlow) : allAudiences).slice(0, 6);
 
-  const destinations: any[] = campaign?.destinations?.length
+  const destinationsRaw: any[] = campaign?.destinations?.length
     ? campaign.destinations
     : [{ id: "default", label: "Conversão", event: "Venda ou Lead" }];
+
+  const conversionDestinations = destinationsRaw.filter(d => d.type !== "retargeting");
+  const hasRetargeting = destinationsRaw.some(d => d.type === "retargeting");
 
   const calcPaths = useCallback(() => {
     const wrap = containerRef.current;
@@ -156,9 +203,11 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
     };
 
     const hub = getEl("flow-hub");
-    const newPaths: { d: string; color: string; key: string; retargeting?: boolean }[] = [];
+    const newPaths: { d: string; color: string; key: string; retargeting?: boolean; weight?: number }[] = [];
 
     if (!hub) { setPaths(newPaths); return; }
+
+    const rtgNode = getEl("flow-retargeting-node");
 
     // Canal → hub
     sources.forEach((src: any, si: number) => {
@@ -184,8 +233,8 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
     });
 
     // Hub → cada destino
-    destinations.forEach((dest: any, di: number) => {
-      const e = getEl(`flow-dest-${di}`);
+    conversionDestinations.forEach((dest: any, di: number) => {
+      const e = getEl(`flow-dest-icon-${di}`);
       if (!e) return;
       
       if (isMobile) {
@@ -205,39 +254,66 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
         });
       }
 
-      // Retargeting: linha única ortogonal de volta (por baixo ou lateral)
-      if (dest.type === "retargeting") {
-        // Pega o primeiro canal disponível (Meta ou Google)
-        const s = getEl(`flow-src-0`) || getEl(`flow-src-1`);
-        if (s && e) {
-          const radius = 16;
-          
-          if (isMobile) {
-            // Mobile: contorno lateral (esquerda)
-            const offX = -20; // Passa um pouco por fora pela esquerda
-            const d = `M${e.left},${e.cy} 
-                       L${offX + radius},${e.cy} 
-                       Q${offX},${e.cy} ${offX},${e.cy - radius} 
-                       L${offX},${s.cy + radius} 
-                       Q${offX},${s.cy} ${offX + radius},${s.cy} 
-                       L${s.left},${s.cy}`;
-            newPaths.push({ key: `rtg-dest${di}`, color: "#facc15", retargeting: true, d });
-          } else {
-            const dropY = Math.max(e.bottom, s.bottom) + 32;
-            const d = `M${e.cx},${e.bottom} 
-                       L${e.cx},${dropY - radius} 
-                       Q${e.cx},${dropY} ${e.cx - radius},${dropY} 
-                       L${s.cx + radius},${dropY} 
-                       Q${s.cx},${dropY} ${s.cx},${dropY - radius} 
-                       L${s.cx},${s.bottom}`;
-            newPaths.push({ key: `rtg-dest${di}`, color: "#facc15", retargeting: true, d });
+      // NOVO: Conexão Hierárquica entre Destinos (apenas entre conversion)
+      if (dest.parentId) {
+        const parentIndex = conversionDestinations.findIndex(d => d.id === dest.parentId);
+        if (parentIndex !== -1) {
+          const p = getEl(`flow-dest-icon-${parentIndex}`);
+          if (p && e && Math.abs(e.top - p.bottom) > 10) {
+            // Conexão vertical centrada no ícone
+            const midY = p.bottom + (e.top - p.bottom) / 2;
+            (newPaths as any).push({
+              key: `dest-link-${dest.id}`,
+              color: "#1e293b",
+              weight: 0.8,
+              isLink: true,
+              d: `M${p.cx},${p.bottom} C${p.cx},${midY} ${e.cx},${midY} ${e.cx},${e.top}`
+            });
           }
         }
       }
     });
 
+    // Retargeting Loop: Hub -> Node -> Canais
+    if (hasRetargeting && rtgNode) {
+      const radius = 16;
+      // Hub para RtgNode — linha reta vertical (rtgNode fica abaixo do hub)
+      newPaths.push({
+        key: `hub-rtg`,
+        color: "#7c3aed",
+        d: `M${hub.cx},${hub.bottom} L${rtgNode.cx},${rtgNode.top}`,
+      });
+
+      // RtgNode para Canais (Seta de volta)
+      sources.forEach((src: any, si: number) => {
+        const s = getEl(`flow-src-${si}`);
+        if (!s) return;
+        
+        if (isMobile) {
+          const offX = -40;
+          const d = `M${rtgNode.left},${rtgNode.cy} 
+                     L${offX + radius},${rtgNode.cy} 
+                     Q${offX},${rtgNode.cy} ${offX},${rtgNode.cy - radius} 
+                     L${offX},${s.cy + radius} 
+                     Q${offX},${s.cy} ${offX + radius},${s.cy} 
+                     L${s.left},${s.cy}`;
+          newPaths.push({ key: `rtg-src-${si}`, color: "#fbbf24", retargeting: true, d });
+        } else {
+          const midX = s.right + (rtgNode.left - s.right) / 2;
+          const dropY = Math.max(rtgNode.bottom, s.bottom) + 40;
+          const d = `M${rtgNode.cx},${rtgNode.bottom} 
+                     L${rtgNode.cx},${dropY - radius} 
+                     Q${rtgNode.cx},${dropY} ${rtgNode.cx - radius},${dropY} 
+                     L${s.cx + radius},${dropY} 
+                     Q${s.cx},${dropY} ${s.cx},${dropY - radius} 
+                     L${s.cx},${s.bottom}`;
+          newPaths.push({ key: `rtg-src-${si}`, color: "#fbbf24", retargeting: true, d });
+        }
+      });
+    }
+
     setPaths(newPaths);
-  }, [sources, audiences, destinations]);
+  }, [sources, audiences, conversionDestinations, hasRetargeting]);
 
   useEffect(() => {
     const t = setTimeout(calcPaths, 80);
@@ -268,9 +344,10 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
       </div>
 
       {/* Layout Principal (Desktop: Row, Mobile: Col) */}
-      <div 
-        ref={containerRef} 
-        className="relative flex flex-col md:flex-row items-center justify-between gap-12 md:gap-8 pb-4 min-h-[300px] md:min-h-[160px]"
+      <div
+        ref={containerRef}
+        className="relative flex flex-col md:flex-row items-center justify-between gap-14 md:gap-10"
+        style={{ minHeight: hasRetargeting ? "320px" : "220px", paddingBottom: hasRetargeting ? "120px" : "64px" }}
       >
         {/* SVG de conexões */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible">
@@ -288,11 +365,14 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
             <marker id="arrowRtg" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
               <path d="M0,0 L0,6 L6,3 z" fill="#facc15" opacity="0.8" />
             </marker>
+            <marker id="arrowLink" markerWidth="5" markerHeight="5" refX="4" refY="2.5" orient="auto">
+              <path d="M0,0 L0,5 L5,2.5 z" fill="#1e293b" />
+            </marker>
           </defs>
           {paths.map((p, i) => {
             const isRtg = (p as any).retargeting;
             const delay = (i * 0.5) % 3;
-            const sw = (p as any).weight ?? 1.5;
+            const sw = p.weight ?? 1.5;
             if (isRtg) {
               return (
                 <g key={p.key}>
@@ -307,13 +387,15 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
                 </g>
               );
             }
+            const isLink = (p as any).isLink;
             return (
               <g key={p.key}>
-                <path d={p.d} fill="none" stroke="#e2e8f0" strokeWidth={sw} strokeLinecap="round" />
+                <path d={p.d} fill="none" stroke={isLink ? "#f1f5f9" : "#e2e8f0"} strokeWidth={sw * 0.8} strokeLinecap="round" />
                 <path
                   d={p.d} fill="none" stroke={p.color}
-                  strokeWidth={sw + 0.5} strokeLinecap="round"
+                  strokeWidth={sw} strokeLinecap="round"
                   pathLength="1" strokeDasharray="0.06 0.12" opacity={0.9}
+                  markerEnd={isLink ? "url(#arrowLink)" : undefined}
                   style={{ animation: `dashflow 2s linear infinite`, animationDelay: `${delay}s` }}
                 />
               </g>
@@ -322,34 +404,36 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
         </svg>
 
         {/* CANAIS */}
-        <div className="flex flex-row md:flex-col gap-3 z-10 shrink-0">
+        <div className="flex flex-row md:flex-col gap-5 z-10 shrink-0 self-center">
           {sources.map((src: any, i: number) => (
-            <div
-              id={`flow-src-${i}`}
-              key={src.name}
-              className={`${src.bg} ${src.border} border rounded-xl px-4 py-2.5 md:py-3 flex items-center gap-3 w-36 md:w-40 shadow-sm`}
-            >
-              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-sm">
-                <src.icon className="w-4 h-4" />
+            <Tooltip key={src.name} position="bottom" text={`${src.name}: Canal de aquisição responsável por atrair novos usuários para o funil.`}>
+              <div
+                id={`flow-src-${i}`}
+                className={`${src.bg} ${src.border} border rounded-xl px-5 py-3 md:py-3.5 flex items-center gap-4 w-[172px] md:w-48 shadow-sm cursor-help transition-all hover:border-slate-300`}
+              >
+                <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm">
+                  <src.icon className="w-5 h-5" />
+                </div>
+                <span className="text-sm md:text-base font-semibold text-gray-700">{src.name}</span>
               </div>
-              <span className="text-xs md:text-sm font-semibold text-gray-700">{src.name}</span>
-            </div>
+            </Tooltip>
           ))}
         </div>
 
         {/* HUB DE PÚBLICOS */}
-        <div className="flex flex-col gap-2 z-10 shrink-0">
-          <div
-            id="flow-hub"
-            className="border border-dashed border-gray-300 rounded-xl p-2 flex flex-col gap-1.5 bg-gray-50/50"
-          >
+        <div className="relative flex flex-col items-center z-10 shrink-0 self-center">
+          <Tooltip position="top" text="Segmentação: Agrupamento de públicos estratégicos impactados pelos anúncios.">
+            <div
+              id="flow-hub"
+              className="border border-dashed border-gray-300 rounded-xl p-2 flex flex-col gap-1.5 bg-gray-50/50 cursor-help transition-all hover:border-slate-300"
+            >
             {audiences.length > 0 ? audiences.map((aud: any, i: number) => (
               <div
                 key={i}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white shadow-sm w-40 md:w-44"
+                className="flex items-center gap-3 px-4 py-2.5 rounded-lg border border-gray-200 bg-white shadow-sm w-[192px] md:w-[212px]"
               >
-                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: aud.hex }} />
-                <span className="text-[10px] md:text-[11px] font-medium text-gray-600 truncate">{aud.name}</span>
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ background: aud.hex }} />
+                <span className="text-[12px] md:text-[13px] font-medium text-gray-600 truncate">{aud.name}</span>
               </div>
             )) : (
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-gray-200 text-gray-300 w-40 md:w-44">
@@ -357,30 +441,47 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
                 <span className="text-[10px] md:text-[11px]">Sem públicos</span>
               </div>
             )}
-          </div>
+            </div>
+          </Tooltip>
+
+          {/* Nó de Retargeting — absoluto para não deslocar o alinhamento vertical do hub */}
+          {hasRetargeting && (
+            <Tooltip position="bottom" text="Retargeting: Estratégia de re-impacto para converter usuários que não concluíram a ação desejada.">
+              <motion.div
+                id="flow-retargeting-node"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="absolute top-full mt-8 flex flex-col items-center gap-1 group cursor-help left-1/2 -translate-x-1/2"
+              >
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-violet-50 border-2 border-violet-200 flex items-center justify-center shadow-sm group-hover:border-violet-400 transition-colors">
+                  <RefreshCw className="w-5 h-5 text-violet-500 animate-[spin_4s_linear_infinite]" />
+                </div>
+                <span className="text-[9px] font-black text-violet-400 uppercase tracking-tighter">Retargeting</span>
+              </motion.div>
+            </Tooltip>
+          )}
         </div>
 
-        {/* DESTINOS */}
-        <div className="flex flex-col gap-3 z-10 shrink-0">
-          {destinations.map((dest: any, i: number) => {
-            const isRtg = dest.type === "retargeting";
+        {/* DESTINOS (Apenas conversão) */}
+        <div className="flex flex-col gap-8 z-10 shrink-0 items-start justify-center self-center">
+          {conversionDestinations.map((dest: any, i: number) => {
             return (
-              <div
-                id={`flow-dest-${i}`}
-                key={dest.id}
-                className="flex items-center gap-2.5"
-              >
-                <div className={`w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center shadow-sm shrink-0 ${isRtg ? "bg-violet-50 border-2 border-violet-300" : "bg-white border-2 border-gray-200"}`}>
-                  {isRtg ? <RefreshCw className="w-4 h-4 text-violet-500" /> : <DestIcon dest={dest} />}
+              <Tooltip key={dest.id} position="left" text={`${dest.label}: Ponto de conversão final onde capturamos leads ou vendas.`}>
+                <div
+                  className="flex items-center gap-2.5 cursor-help group/d"
+                >
+                  <div 
+                    id={`flow-dest-icon-${i}`}
+                    className="w-11 h-11 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-sm shrink-0 bg-white border-2 border-gray-200 transition-all group-hover/d:border-slate-300"
+                  >
+                    <DestIcon dest={dest} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[13px] md:text-[14px] font-semibold text-gray-800 leading-tight truncate">{dest.label}</p>
+                    {dest.event && <p className="text-[10px] md:text-[11px] text-gray-400 truncate">{dest.event}</p>}
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] md:text-[12px] font-semibold leading-tight truncate" style={{ color: isRtg ? "#7c3aed" : "#374151" }}>{dest.label}</p>
-                  {isRtg
-                    ? <p className="text-[8px] md:text-[9px] text-violet-400 truncate">Retargeting</p>
-                    : dest.event && <p className="text-[8px] md:text-[9px] text-gray-400 truncate">{dest.event}</p>
-                  }
-                </div>
-              </div>
+              </Tooltip>
             );
           })}
         </div>

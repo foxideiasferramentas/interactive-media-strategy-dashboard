@@ -418,6 +418,7 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                              lh={pmaxLH}
                              body={pmaxBody}
                              totalImages={pmaxImages.length}
+                             companyLogo={companyLogo}
                            />
                            {canRotate && (
                             <div className="flex items-center justify-center gap-2 mt-4">
@@ -441,27 +442,15 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                   <div>
                     <h4 className="text-[10px] uppercase font-bold text-gray-400 tracking-widest mb-6">Configurações Gerais</h4>
                     <div className="grid gap-6">
-                      <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                             <label className="text-[10px] uppercase font-bold text-gray-400">Nome do Criativo</label>
-                             <EditableField
-                               value={working.name || ""}
-                               onChange={(v) => updateDraft({ name: v } as any)}
-                               placeholder="Ex: Awareness - Feed"
-                               editMode={editMode}
-                               readOnly={readOnly}
-                             />
-                          </div>
-                          <div className="space-y-2">
-                             <label className="text-[10px] uppercase font-bold text-gray-400">CTA</label>
-                             <EditableField
-                               value={working.cta || ""}
-                               onChange={(v) => updateDraft({ cta: v })}
-                               placeholder="Ex: Saiba Mais"
-                               editMode={editMode}
-                               readOnly={readOnly}
-                             />
-                          </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] uppercase font-bold text-gray-400">Nome do Criativo</label>
+                         <EditableField
+                           value={working.name || ""}
+                           onChange={(v) => updateDraft({ name: v } as any)}
+                           placeholder="Ex: Awareness - Feed"
+                           editMode={editMode}
+                           readOnly={readOnly}
+                         />
                       </div>
                     </div>
                   </div>
@@ -490,6 +479,16 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                         activeColor="border-emerald-200 bg-emerald-50/30"
                         activeLabel="Ativa "
                         maxLength={90}
+                        editMode={editMode}
+                        readOnly={readOnly}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-gray-400">Chamada para Ação (CTA)</label>
+                      <EditableField
+                        value={working.cta || ""}
+                        onChange={(v) => updateDraft({ cta: v })}
+                        placeholder="Ex: Saiba Mais"
                         editMode={editMode}
                         readOnly={readOnly}
                       />
@@ -564,6 +563,16 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                                 readOnly={readOnly}
                               />
                             </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] uppercase font-bold text-gray-400">Chamada para Ação (CTA)</label>
+                              <EditableField
+                                value={working.cta || ""}
+                                onChange={(v) => updateDraft({ cta: v })}
+                                placeholder="Ex: Saiba Mais"
+                                editMode={editMode}
+                                readOnly={readOnly}
+                              />
+                            </div>
                          </div>
                        </div>
                     </div>
@@ -577,46 +586,67 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                       <label className="text-[10px] uppercase font-bold text-gray-400">Texto Principal</label>
                       <EditableField value={working.body || working.primaryText || ""} onChange={(v) => updateDraft({ body: v })} multiline editMode={editMode} readOnly={readOnly} />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] uppercase font-bold text-gray-400">Chamada para Ação (CTA)</label>
+                      <EditableField value={working.cta || ""} onChange={(v) => updateDraft({ cta: v })} placeholder="Ex: Saiba Mais" editMode={editMode} readOnly={readOnly} />
+                    </div>
                     {!readOnly && (
-                       working.format === "Carousel" ? (
+                      working.format === "Carousel" ? (
                         <div className="space-y-4">
-                           <div className="flex items-center justify-between">
-                             <label className="text-[10px] uppercase font-bold text-gray-400">Cards do Carrossel ({working.carouselCards?.length || 0})</label>
-                             <button onClick={() => updateDraft({ carouselCards: [...(working.carouselCards || []), { imageUrl: "", headline: "" }] })} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium">+ Adicionar Card</button>
-                           </div>
-                           <div className="grid gap-3">
-                             {(working.carouselCards || []).map((card, idx) => (
-                               <div key={idx} className={`p-3 rounded-xl border transition-all ${carouselIdx === idx ? "border-blue-200 bg-blue-50/30 shadow-sm" : "bg-gray-50 border-gray-100"}`}>
-                                 <div className="flex items-center justify-between">
-                                   <div className="flex items-center gap-1.5">
-                                     <span className="text-[9px] font-bold text-gray-400 uppercase">Card {idx + 1}</span>
-                                     {carouselIdx === idx && <span className="text-[8px] bg-blue-500 text-white px-1 rounded uppercase font-bold">Ativo</span>}
-                                   </div>
-                                   <button onClick={() => updateDraft({ carouselCards: working.carouselCards?.filter((_, i) => i !== idx) })} className="text-red-400 hover:text-red-600"><X className="w-3 h-3"/></button>
-                                 </div>
-                                 <div className="space-y-2">
-                                   <input type="text" value={card.imageUrl} onChange={(e) => {
-                                     const cards = [...(working.carouselCards || [])];
-                                     cards[idx] = { ...card, imageUrl: e.target.value };
-                                     updateDraft({ carouselCards: cards });
-                                   }} className="w-full text-xs font-mono p-2 border rounded" placeholder="URL da Imagem" disabled={readOnly} />
-                                   <input type="text" value={card.headline} onChange={(e) => {
-                                     const cards = [...(working.carouselCards || [])];
-                                     cards[idx] = { ...card, headline: e.target.value };
-                                     updateDraft({ carouselCards: cards });
-                                   }} className="w-full text-xs font-bold p-2 border rounded" placeholder="Título do Card" disabled={readOnly} />
-                                 </div>
-                               </div>
-                             ))}
-                             {working.carouselCards?.length === 0 && (
-                               <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-xl text-gray-300 text-xs italic">Nenhum card adicionado</div>
-                             )}
-                           </div>
+                          <div className="flex items-center justify-between">
+                            <label className="text-[10px] uppercase font-bold text-gray-400">Cards do Carrossel ({working.carouselCards?.length || 0})</label>
+                            <button onClick={() => updateDraft({ carouselCards: [...(working.carouselCards || []), { id: uid(), imageUrl: "", headline: "" }] })} className="text-[10px] text-blue-600 hover:text-blue-700 font-medium">+ Adicionar Card</button>
+                          </div>
+                          <div className="grid gap-3">
+                            {(working.carouselCards || []).map((card, idx) => (
+                              <div key={idx} className={`p-3 rounded-xl border transition-all ${carouselIdx === idx ? "border-blue-200 bg-blue-50/30 shadow-sm" : "bg-gray-50 border-gray-100"}`}>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase">Card {idx + 1}</span>
+                                    {carouselIdx === idx && <span className="text-[8px] bg-blue-500 text-white px-1 rounded uppercase font-bold">Ativo</span>}
+                                  </div>
+                                  <button onClick={() => updateDraft({ carouselCards: working.carouselCards?.filter((_, i) => i !== idx) })} className="text-red-400 hover:text-red-600"><X className="w-3 h-3"/></button>
+                                </div>
+                                <div className="space-y-2">
+                                  <input type="text" value={card.imageUrl} onChange={(e) => {
+                                    const cards = [...(working.carouselCards || [])];
+                                    cards[idx] = { ...card, imageUrl: e.target.value };
+                                    updateDraft({ carouselCards: cards });
+                                  }} className="w-full text-xs font-mono p-2 border rounded" placeholder="URL da Imagem" disabled={readOnly} />
+                                  <input type="text" value={card.headline} onChange={(e) => {
+                                    const cards = [...(working.carouselCards || [])];
+                                    cards[idx] = { ...card, headline: e.target.value };
+                                    updateDraft({ carouselCards: cards });
+                                  }} className="w-full text-xs font-bold p-2 border rounded" placeholder="Título do Card" disabled={readOnly} />
+                                </div>
+                              </div>
+                            ))}
+                            {working.carouselCards?.length === 0 && (
+                              <div className="text-center py-6 border-2 border-dashed border-gray-100 rounded-xl text-gray-300 text-xs italic">Nenhum card adicionado</div>
+                            )}
+                          </div>
                         </div>
-                       ) : (
-                        <EditableImageList label="Images" images={working.images || (working.image ? [working.image] : [])} onChange={(imgs) => updateDraft({ images: imgs, image: imgs[0] })} readOnly={readOnly} />
-                       )
-                     )}
+                      ) : (
+                        <div className="space-y-6">
+                          <EditableVideoList 
+                            videos={working.videos || []} 
+                            onChange={(vids) => {
+                              updateDraft({ 
+                                videos: vids,
+                                format: vids.length > 0 ? "Video" : "Image"
+                              } as any);
+                            }} 
+                            readOnly={readOnly} 
+                          />
+                          <EditableImageList 
+                            label="Imagens / Thumbnails" 
+                            images={working.images || (working.image ? [working.image] : [])} 
+                            onChange={(imgs) => updateDraft({ images: imgs, image: imgs[0] })} 
+                            readOnly={readOnly} 
+                          />
+                        </div>
+                      )
+                    )}
                   </div>
                 )}
               </div>
@@ -643,134 +673,112 @@ const MetaPreviewBody = React.memo(function MetaPreviewBody({ placement, creativ
   const src = isCarousel ? currentCard?.imageUrl : images[imgIdx];
   const normalized = useMemo(() => normalizeMediaUrl(src || ""), [src]);
   const [muted, setMuted] = useState(true);
-  const isVideo = isDirectVideoUrl(src || "");
+  const [isExpanded, setIsExpanded] = useState(false);
+  
+  const isYT = getYouTubeId(src || "");
+  const isDirectVideo = isDirectVideoUrl(src || "");
+  const isVideo = creative.format !== "Image" && (isDirectVideo || !!isYT);
+  
+  const primaryText = creative.primaryText || creative.body || "";
+  const needsTruncation = primaryText.length > 120;
 
-  const Nav = () => totalItems > 1 ? (
-    <>
-      <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center z-10"><ChevronLeft className="w-4 h-4"/></button>
-      <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center z-10"><ChevronRight className="w-4 h-4"/></button>
-    </>
+  useEffect(() => {
+    if (placement === "reels" && totalItems > 1) {
+      const timer = setInterval(() => {
+        onNext();
+      }, 5000);
+      return () => clearInterval(timer);
+    }
+  }, [placement, totalItems, onNext]);
+
+  const Nav = () => (totalItems > 1 && placement !== "reels") ? (
+    <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 pointer-events-none z-10 transition-opacity opacity-0 group-hover:opacity-100">
+      <button onClick={(e) => { e.stopPropagation(); onPrev(); }} className="w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center pointer-events-auto hover:bg-white transition-colors"><ChevronLeft className="w-5 h-5 text-gray-700"/></button>
+      <button onClick={(e) => { e.stopPropagation(); onNext(); }} className="w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center pointer-events-auto hover:bg-white transition-colors"><ChevronRight className="w-5 h-5 text-gray-700"/></button>
+    </div>
   ) : null;
 
-  // ── Stories ──────────────────────────────────────────────────────────
-  if (placement === "stories") {
-    return (
-      <div className="relative overflow-hidden bg-black" style={{ aspectRatio: "9 / 16" }}>
-        {isVideo ? (
-          <video
-            src={normalized}
-            className="w-full h-full object-cover bg-black/10"
-            muted={muted}
-            autoPlay
-            loop
-            playsInline
-            preload="metadata"
-            crossOrigin="anonymous"
-          />
-        ) : (
-          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
-        )}
-        <Nav />
-        {isVideo && (
-          <button onClick={() => setMuted(!muted)} className="absolute bottom-20 right-3 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
-            {muted ? <VolumeX className="w-4 h-4 text-white"/> : <Volume2 className="w-4 h-4 text-white"/>}
-          </button>
-        )}
-        {/* Top bar */}
-        <div className="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-20 pointer-events-none">
-          <div className="flex gap-1 mb-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex-1 h-[2px] rounded-full bg-white/40" />
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
-              <Globe className="w-3.5 h-3.5 text-white/40" />
-              {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
-            </div>
-            <div>
-              <p className="text-[11px] font-bold text-white leading-none">{companyName}</p>
-              <p className="text-[9px] text-white/60 mt-0.5">Patrocinado</p>
-            </div>
-          </div>
-        </div>
-        {/* Bottom CTA */}
-        <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/70 to-transparent z-20 pointer-events-none flex flex-col items-center gap-2">
-          <p className="text-[11px] text-white font-semibold text-center line-clamp-2 drop-shadow">
-            {isCarousel ? currentCard?.headline : creative.headline}
-          </p>
-          <div className="flex flex-col items-center gap-1">
-            <div className="w-px h-3 bg-white/60" />
-            <p className="text-[10px] text-white font-bold uppercase tracking-wide">{creative.cta}</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ── Reels ────────────────────────────────────────────────────────────
-  if (placement === "reels") {
-    return (
-      <div className="relative overflow-hidden bg-black" style={{ aspectRatio: "9 / 16" }}>
-        {isVideo ? (
-          <video
-            src={normalized}
-            className="w-full h-full object-cover bg-black/10"
-            muted={muted}
-            autoPlay
-            loop
-            playsInline
-            preload="metadata"
-            crossOrigin="anonymous"
-          />
-        ) : (
-          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
-        )}
-        <Nav />
-        {/* Right actions */}
-        <div className="absolute right-2 bottom-20 flex flex-col items-center gap-4 z-20 pointer-events-none">
-          {["♥", "💬", "↗"].map((icon, i) => (
-            <div key={i} className="flex flex-col items-center gap-0.5">
-              <div className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
-                <span className="text-white text-[13px]">{icon}</span>
-              </div>
-            </div>
+  const renderStories = () => (
+    <div className="relative overflow-hidden bg-black group" style={{ aspectRatio: "9 / 16" }}>
+      <Media isYT={isYT} isDirectVideo={isDirectVideo} normalized={normalized} muted={muted} src={src} isReels={false} />
+      <Nav />
+      {isVideo && isDirectVideo && (
+        <button onClick={() => setMuted(!muted)} className="absolute bottom-20 right-3 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
+          {muted ? <VolumeX className="w-4 h-4 text-white"/> : <Volume2 className="w-4 h-4 text-white"/>}
+        </button>
+      )}
+      <div className="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-20 pointer-events-none">
+        <div className="flex gap-1 mb-2">
+          {Array.from({ length: totalItems }).map((_, i) => (
+            <div key={i} className={`flex-1 h-[2px] rounded-full transition-colors ${i <= imgIdx ? "bg-white" : "bg-white/40"}`} />
           ))}
         </div>
-        {/* Bottom overlay */}
-        <div className="absolute bottom-0 inset-x-0 px-3 pb-4 pt-8 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-20 pointer-events-none">
-          <div className="flex items-end justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="w-5 h-5 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
-                  <Globe className="w-2.5 h-2.5 text-white/40" />
-                  {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
-                </div>
-                <span className="text-[10px] font-bold text-white">{companyName}</span>
-                <span className="text-[9px] text-white/50">· Patrocinado</span>
-              </div>
-              <p className="text-[11px] text-white line-clamp-2 leading-snug">{creative.primaryText || creative.body}</p>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
+            <Globe className="w-3.5 h-3.5 text-white/40" />
+            {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
           </div>
-          <div className="mt-2.5 flex justify-center">
-            <div className="px-5 py-1.5 bg-white/15 border border-white/30 backdrop-blur-sm rounded-full">
-              <span className="text-[11px] font-bold text-white">{creative.cta}</span>
-            </div>
+          <div>
+            <p className="text-[11px] font-bold text-white leading-none">{companyName}</p>
+            <p className="text-[9px] text-white/60 mt-0.5">Patrocinado</p>
           </div>
         </div>
-        {isVideo && (
-          <button onClick={() => setMuted(!muted)} className="absolute bottom-4 right-3 z-30 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
-            {muted ? <VolumeX className="w-4 h-4 text-white"/> : <Volume2 className="w-4 h-4 text-white"/>}
-          </button>
-        )}
       </div>
-    );
-  }
+      <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/70 to-transparent z-20 pointer-events-none flex flex-col items-center gap-2">
+        <p className="text-[11px] text-white font-semibold text-center line-clamp-2 drop-shadow">
+          {isCarousel ? currentCard?.headline : creative.headline}
+        </p>
+        <div className="flex flex-col items-center gap-1">
+          <div className="w-px h-3 bg-white/60" />
+          <p className="text-[10px] text-white font-bold uppercase tracking-wide">{creative.cta}</p>
+        </div>
+      </div>
+    </div>
+  );
 
-  // ── Feed ─────────────────────────────────────────────────────────────
-  return (
-    <div className="flex flex-col">
-      {/* Header */}
+  const renderReels = () => (
+    <div className="relative overflow-hidden bg-black" style={{ aspectRatio: "9 / 16" }}>
+      <Media isYT={isYT} isDirectVideo={isDirectVideo} normalized={normalized} muted={muted} src={src} isReels={true} />
+      <Nav />
+      <div className="absolute right-2 bottom-20 flex flex-col items-center gap-4 z-20 pointer-events-none">
+        {["♥", "💬", "↗"].map((icon, i) => (
+          <div key={i} className="flex flex-col items-center gap-0.5">
+            <div className="w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
+              <span className="text-white text-[13px]">{icon}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="absolute bottom-0 inset-x-0 px-3 pb-4 pt-8 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-20 pointer-events-none">
+        <div className="flex items-end justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5 mb-1">
+              <div className="w-5 h-5 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
+                <Globe className="w-2.5 h-2.5 text-white/40" />
+                {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
+              </div>
+              <span className="text-[10px] font-bold text-white">{companyName}</span>
+              <span className="text-[9px] text-white/50">· Patrocinado</span>
+            </div>
+            <p className="text-[11px] text-white line-clamp-2 leading-snug whitespace-pre-wrap">{creative.primaryText || creative.body}</p>
+          </div>
+        </div>
+        <div className="mt-2.5 flex justify-center">
+          <div className="px-5 py-1.5 bg-white/15 border border-white/30 backdrop-blur-sm rounded-full">
+            <span className="text-[11px] font-bold text-white">{creative.cta}</span>
+          </div>
+        </div>
+      </div>
+      {isVideo && isDirectVideo && (
+        <button onClick={() => setMuted(!muted)} className="absolute bottom-4 right-3 z-30 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
+          {muted ? <VolumeX className="w-4 h-4 text-white"/> : <Volume2 className="w-4 h-4 text-white"/>}
+        </button>
+      )}
+    </div>
+  );
+
+  const renderFeed = () => (
+    <div className="flex flex-col group">
       <div className="flex items-center justify-between px-3 py-2.5">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative">
@@ -788,34 +796,30 @@ const MetaPreviewBody = React.memo(function MetaPreviewBody({ placement, creativ
           <div className="w-[3px] h-[3px] rounded-full bg-gray-300" />
         </div>
       </div>
-      {/* Copy */}
       <div className="px-3 pb-2">
-        <p className="text-[12px] text-gray-800 leading-relaxed line-clamp-2">{creative.primaryText || creative.body}</p>
+        <p className="text-[12px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+          {isExpanded || !needsTruncation 
+            ? primaryText 
+            : `${primaryText.trimEnd().substring(0, 95)}...`}
+          {!isExpanded && needsTruncation && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }} 
+              className="ml-0.5 text-gray-500 font-semibold hover:text-gray-700 hover:underline text-[12px]"
+            >
+              Ver mais
+            </button>
+          )}
+        </p>
       </div>
-      {/* Media — 4:5 */}
       <div className="relative overflow-hidden bg-slate-100" style={{ aspectRatio: "4 / 5" }}>
-        {isVideo ? (
-          <video
-            src={normalized}
-            className="w-full h-full object-cover bg-black/10"
-            muted={muted}
-            autoPlay
-            loop
-            playsInline
-            preload="metadata"
-            crossOrigin="anonymous"
-          />
-        ) : (
-          <img src={normalized} loading="lazy" className="w-full h-full object-cover" alt="" />
-        )}
+        <Media isYT={isYT} isDirectVideo={isDirectVideo} normalized={normalized} muted={muted} src={src} isReels={false} />
         <Nav />
-        {isVideo && (
+        {isVideo && isDirectVideo && (
           <button onClick={() => setMuted(!muted)} className="absolute bottom-3 right-3 z-20 w-8 h-8 rounded-full bg-black/40 flex items-center justify-center">
             {muted ? <VolumeX className="w-4 h-4 text-white"/> : <Volume2 className="w-4 h-4 text-white"/>}
           </button>
         )}
       </div>
-      {/* CTA bar */}
       <div className="px-3 py-2.5 bg-slate-50 border-t border-gray-100 flex items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-[9px] text-gray-400 uppercase tracking-tight truncate">{creative.displayLink || "www.site.com"}</p>
@@ -829,7 +833,74 @@ const MetaPreviewBody = React.memo(function MetaPreviewBody({ placement, creativ
       </div>
     </div>
   );
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-2xl">
+      {placement === "stories" ? renderStories() : placement === "reels" ? renderReels() : renderFeed()}
+    </div>
+  );
 });
+
+const Media = ({ 
+  isYT, 
+  isDirectVideo, 
+  normalized, 
+  muted, 
+  src, 
+  isReels = false 
+}: { 
+  isYT: string | null; 
+  isDirectVideo: boolean; 
+  normalized: string; 
+  muted: boolean; 
+  src: string; 
+  isReels?: boolean;
+}) => {
+  if (isYT) {
+    return (
+      <iframe
+        src={`https://www.youtube.com/embed/${isYT}?autoplay=1&mute=1&controls=0&loop=1&playlist=${isYT}`}
+        className="w-full h-full border-0 pointer-events-none bg-black"
+        allow="autoplay; encrypted-media"
+      />
+    );
+  }
+  if (isDirectVideo) {
+    return (
+      <video
+        src={normalized}
+        className="w-full h-full object-cover bg-black/10"
+        muted={muted}
+        autoPlay
+        loop
+        playsInline
+        preload="metadata"
+        crossOrigin="anonymous"
+      />
+    );
+  }
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-black">
+      <AnimatePresence initial={false}>
+        <motion.div
+          key={src}
+          initial={isReels ? { x: "100%", opacity: 1 } : { opacity: 0 }}
+          animate={isReels ? { x: 0, opacity: 1 } : { x: 0, opacity: 1 }}
+          exit={isReels ? { x: "-100%", opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+          className="absolute inset-0 w-full h-full overflow-hidden"
+        >
+          <img
+            src={normalized}
+            loading="lazy"
+            className={`w-full h-full object-cover ${isReels ? "animate-ken-burns" : ""}`}
+            alt=""
+          />
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
 
 function nextCarousel(curr: number, total: number) { return total > 0 ? (curr + 1) % total : 0; }
 function prevCarousel(curr: number, total: number) { return total > 0 ? (curr - 1 + total) % total : 0; }

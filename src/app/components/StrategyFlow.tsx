@@ -31,38 +31,26 @@ import {
   Check,
   Eye,
   EyeOff,
+  RefreshCw,
 } from "lucide-react";
 import { Campaign, StageKey, MetaCreative, GoogleCreative, SavedAudience, ConversionDestination } from "../data/types";
 import { MetaCreativeEditor, GoogleCreativeEditor, Field } from "./CreativeEditors";
 import { useIsMobile } from "./ui/use-mobile";
 import { useStore } from "../data/store";
 
+import { 
+  DropZone, AddButton, AudienceNode, CreativeNode, CreativeForm, 
+  MetricPopover, LibraryPopover, DestinationsPanel, FLOW_STAGE_LABELS,
+  uid, ZOOM_MIN, ZOOM_MAX, ZOOM_STEP, GRID_SIZE, creativeIcon
+} from "./StrategyFlowNodes";
+
+const STAGES: StageKey[] = ["top", "middle", "bottom"];
+
 interface StrategyFlowProps {
   campaign: Campaign;
   onUpdate: (campaign: Campaign) => void;
 }
 
-const FLOW_STAGE_LABELS: Record<StageKey, { label: string; color: string; bg: string; accent: string }> = {
-  top:    { label: "Topo",  color: "from-blue-500 to-blue-600",     bg: "bg-blue-50",    accent: "#3b82f6" },
-  middle: { label: "Meio",  color: "from-violet-500 to-violet-600", bg: "bg-violet-50",  accent: "#8b5cf6" },
-  bottom: { label: "Fundo", color: "from-emerald-500 to-emerald-600", bg: "bg-emerald-50", accent: "#10b981" },
-};
-
-const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-const ZOOM_MIN = 0.2;
-const ZOOM_MAX = 1.5;
-const ZOOM_STEP = 0.1;
-const GRID_SIZE = 24; // tamanho da célula do grid em px (espaço do canvas, antes do zoom)
-
-function creativeIcon(format: string) {
-  const cls = "w-3 h-3";
-  if (format === "Image" || format === "Display") return <ImageIcon className={cls} />;
-  if (format === "Video" || format === "YouTube") return <Video className={cls} />;
-  if (format === "Carousel") return <LayoutGrid className={cls} />;
-  if (format === "Search") return <Search className={cls} />;
-  if (format === "PMax") return <Maximize2 className={cls} />;
-  return <Monitor className={cls} />;
-}
 
 export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const isMobile = useIsMobile();
@@ -85,7 +73,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const [creativeDropTarget, setCreativeDropTarget] = useState<string | null>(null); // audienceId alvo
   const draggingCreativeRef = useRef<{ creativeId: string; fromAudienceId: string } | null>(null);
 
-  // Drag de conexão criativo → destino
+  // Drag de conexÃ£o criativo â†’ destino
   const [connectingFrom, setConnectingFrom] = useState<{ creativeId: string; audienceId: string; channel: "meta"|"google"; stage: StageKey } | null>(null);
   const [connectingLine, setConnectingLine] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const [hoveredDestId, setHoveredDestId] = useState<string | null>(null);
@@ -95,7 +83,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const [panelAudience, setPanelAudience] = useState<{ id: string; channel: "meta"|"google"; stage: StageKey } | null>(null);
   const [editingCreativeId, setEditingCreativeId] = useState<string | null>(null);
 
-  // Pan & Zoom em refs para evitar stale closures e re-renders desnecessários
+  // Pan & Zoom em refs para evitar stale closures e re-renders desnecessÃ¡rios
   const zoom      = useRef(0.75);
   const pan       = useRef({ x: 40, y: 40 });
   const isPanning = useRef(false);
@@ -142,14 +130,14 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     if (!container || !canvas) return;
     const cw = container.clientWidth;
     const ch = container.clientHeight;
-    // reset temporário para medir tamanho natural do conteúdo
+    // reset temporÃ¡rio para medir tamanho natural do conteÃºdo
     canvas.style.transform = "translate(0px,0px) scale(1)";
     const { width: contentW, height: contentH } = canvas.getBoundingClientRect();
     const padding = 48;
     const fitZoom = Math.min(
       (cw - padding * 2) / contentW,
       (ch - padding * 2) / contentH,
-      0.9 // não ultra-ampliar
+      0.9 // nÃ£o ultra-ampliar
     );
     const z = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fitZoom));
     zoom.current = z;
@@ -227,7 +215,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     };
   }, [applyTransform, rerender]);
 
-  // Auto-fit na montagem (após o DOM renderizar)
+  // Auto-fit na montagem (apÃ³s o DOM renderizar)
   useEffect(() => {
     const timer = setTimeout(autoFit, 80);
     return () => clearTimeout(timer);
@@ -241,7 +229,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     return list;
   }, [campaign.budgetAllocation]);
 
-  // Calcula SVG de conexões
+  // Calcula SVG de conexÃµes
   const calculatePaths = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -278,47 +266,66 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
           const e = getCenter(`node-aud-${a.id}`, "left");
           if (s && e) newConns.push({ start: s, end: e, id: `${st}-${a.id}`, color: "#cbd5e1" });
 
-          // Conexões público → criativo
+          // ConexÃµes criativo â†’ destinos (somente os explicitamente vinculados de conversÃ£o)
           a.creatives?.forEach((cr: any) => {
             const cs = getCenter(`node-aud-${a.id}`, "right");
             const ce = getCenter(`node-cr-${cr.id}`, "left");
             if (cs && ce) newConns.push({ start: cs, end: ce, id: `aud-cr-${cr.id}`, color: ch === "meta" ? "#bfdbfe" : "#a7f3d0" });
 
-            // Conexões criativo → destinos (somente os explicitamente vinculados)
             (cr.destinationIds || []).forEach((destId: string) => {
-              const ds = getCenter(`node-cr-${cr.id}`, "right");
-              const de = getCenter(`node-dest-${destId}`, "left");
-              if (ds && de) newConns.push({ start: ds, end: de, id: `cr-dest-${cr.id}-${destId}`, color: "#10b981", dashed: true });
+              const destObj = (campaign.destinations || []).find(d => d.id === destId);
+              if (destObj && destObj.type !== "retargeting") {
+                const ds = getCenter(`node-cr-${cr.id}`, "right");
+                const de = getCenter(`node-dest-${destId}`, "left");
+                if (ds && de) newConns.push({ start: ds, end: de, id: `cr-dest-${cr.id}-${destId}`, color: "#10b981", dashed: true });
+              }
             });
           });
 
-          // Conexão de Retargeting Única (Reconexão aos Canais)
+          // ConexÃ£o Ãšnica de Retargeting EstratÃ©gico (Hub -> RtgNode)
+          const hasRtg = (campaign.destinations || []).some(d => d.type === "retargeting");
+          if (hasRtg) {
+            const hNode = getCenter(`node-stage-bottom`, "bottom");
+            const rNode = getCenter(`node-retargeting-loop`, "top");
+            if (hNode && rNode) {
+              newConns.push({ start: hNode, end: rNode, id: `hub-rtg-loop`, color: "#7c3aed" });
+              
+              // RtgNode -> Canal
+              const targetCh = campaign.budgetAllocation.metaEnabled ? "meta" : "google";
+              const sNode = getCenter(`node-channel-${targetCh}`, "bottom");
+              if (sNode) {
+                const dropY = 680;
+                const radius = 24;
+                const path = `M ${rNode.x},${rNode.y + 20} 
+                             L ${rNode.x},${dropY - radius} 
+                             Q ${rNode.x},${dropY} ${rNode.x - radius},${dropY} 
+                             L ${sNode.x + radius},${dropY} 
+                             Q ${sNode.x},${dropY} ${sNode.x},${dropY - radius} 
+                             L ${sNode.x},${sNode.y}`;
+
+                newConns.push({ 
+                  id: `rtg-feedback-loop`, 
+                  color: "#fbbf24", 
+                  dashed: true, 
+                  customPath: path 
+                } as any);
+              }
+            }
+          }
+
+          // VÃ­nculos entre destinos de conversÃ£o
           (campaign.destinations || []).forEach((dest) => {
-            if (dest.type === "retargeting") {
-              const dNode = getCenter(`node-dest-${dest.id}`, "bottom");
-              if (!dNode) return;
-
-              // Pega o primeiro canal habilitado para o qual retornar
-              const ch = campaign.budgetAllocation.metaEnabled ? "meta" : campaign.budgetAllocation.googleEnabled ? "google" : null;
-              if (ch) {
-                const sNode = getCenter(`node-channel-${ch}`, "bottom");
-                if (sNode) {
-                  const dropY = 660;
-                  const radius = 20;
-                  const path = `M ${dNode.x},${dNode.y} 
-                               L ${dNode.x},${dropY - radius} 
-                               Q ${dNode.x},${dropY} ${dNode.x - radius},${dropY} 
-                               L ${sNode.x + radius},${dropY} 
-                               Q ${sNode.x},${dropY} ${sNode.x},${dropY - radius} 
-                               L ${sNode.x},${sNode.y}`;
-
-                  newConns.push({ 
-                    id: `rtg-loop-${dest.id}`, 
-                    color: "#facc15", // Amarelo vibrante
-                    dashed: true, 
-                    customPath: path 
-                  } as any);
-                }
+            if (dest.parentId && dest.type !== "retargeting") {
+              const childPos = getCenter(`node-dest-${dest.id}`, "top");
+              const parentPos = getCenter(`node-dest-${dest.parentId}`, "bottom");
+              if (childPos && parentPos) {
+                newConns.push({
+                  start: parentPos,
+                  end: childPos,
+                  id: `dest-link-${dest.id}`,
+                  color: "#fbbf24",
+                  dashed: false
+                });
               }
             }
           });
@@ -350,7 +357,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [onUpdate]);
 
-  // ── Helpers de mutação ───────────────────────────────────────────────────
+  // â”€â”€ Helpers de mutaÃ§Ã£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const pushUpdate = useCallback((updated: Campaign) => {
     setHistory(prev => [...prev.slice(-9), campaign]);
@@ -359,7 +366,6 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
 
   const moveCreative = useCallback((creativeId: string, srcId: string, tgtId: string) => {
     if (srcId === tgtId) return;
-    const STAGES: StageKey[] = ["top","middle","bottom"];
     let srcCh: "meta"|"google"|null = null, tgtCh: "meta"|"google"|null = null;
     STAGES.forEach(s => {
       if (campaign.meta[s].find((a: any) => a.id === srcId))   srcCh = "meta";
@@ -399,9 +405,9 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   const addAudience = useCallback((channel: "meta"|"google", stage: StageKey) => {
     const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
     const newId = uid();
-    (clone[channel][stage] as any[]).push({ id: newId, title: channel === "meta" ? "Novo Público Meta" : "Novo Público Google", description: "", tag: "Segmentação", creatives: [] });
+    (clone[channel][stage] as any[]).push({ id: newId, title: channel === "meta" ? "Novo PÃºblico Meta" : "Novo PÃºblico Google", description: "", tag: "SegmentaÃ§Ã£o", creatives: [] });
     pushUpdate(clone);
-    // Abre o painel para o novo público automaticamente
+    // Abre o painel para o novo pÃºblico automaticamente
     setPanelAudience({ id: newId, channel, stage });
     setActiveAudienceId(newId);
   }, [campaign, pushUpdate]);
@@ -447,7 +453,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     const orig = src.find((a: any) => a.id === audienceId);
     if (!orig) return;
     const newId = uid();
-    const copy = { ...JSON.parse(JSON.stringify(orig)), id: newId, title: `${orig.title} (cópia)`, creatives: orig.creatives.map((c: any) => ({ ...c, id: uid() })) };
+    const copy = { ...JSON.parse(JSON.stringify(orig)), id: newId, title: `${orig.title} (cÃ³pia)`, creatives: orig.creatives.map((c: any) => ({ ...c, id: uid() })) };
     src.splice(src.findIndex((a: any) => a.id === audienceId) + 1, 0, copy);
     pushUpdate(clone);
     setPanelAudience({ id: newId, channel, stage });
@@ -460,7 +466,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     if (!aud) return;
     const idx = aud.creatives.findIndex((c: any) => c.id === creativeId);
     if (idx === -1) return;
-    const copy = { ...JSON.parse(JSON.stringify(aud.creatives[idx])), id: uid(), name: `${aud.creatives[idx].name} (cópia)` };
+    const copy = { ...JSON.parse(JSON.stringify(aud.creatives[idx])), id: uid(), name: `${aud.creatives[idx].name} (cÃ³pia)` };
     aud.creatives.splice(idx + 1, 0, copy);
     pushUpdate(clone);
   }, [campaign, pushUpdate]);
@@ -496,6 +502,31 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     pushUpdate(clone);
   }, [campaign, pushUpdate]);
 
+  const reorderAudience = useCallback((audienceId: string, channel: "meta"|"google", stage: StageKey, dir: "up"|"down") => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    const list = clone[channel][stage] as any[];
+    const idx = list.findIndex((a: any) => a.id === audienceId);
+    if (idx === -1) return;
+    const newIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= list.length) return;
+    const [item] = list.splice(idx, 1);
+    list.splice(newIdx, 0, item);
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
+  const reorderCreative = useCallback((creativeId: string, audienceId: string, channel: "meta"|"google", stage: StageKey, dir: "up"|"down") => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    const aud = (clone[channel][stage] as any[]).find((a: any) => a.id === audienceId);
+    if (!aud) return;
+    const idx = aud.creatives.findIndex((c: any) => c.id === creativeId);
+    if (idx === -1) return;
+    const newIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= aud.creatives.length) return;
+    const [item] = aud.creatives.splice(idx, 1);
+    aud.creatives.splice(newIdx, 0, item);
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
   const addAudienceFromLibrary = useCallback((channel: "meta"|"google", stage: StageKey, saved: any) => {
     const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
     const newId = uid();
@@ -510,7 +541,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     setActiveAudienceId(newId);
   }, [campaign, pushUpdate]);
 
-  // Encontra público e criativos dado um id
+  // Encontra pÃºblico e criativos dado um id
   const findAudience = useCallback((id: string) => {
     for (const s of ["top","middle","bottom"] as StageKey[]) {
       const m = (campaign.meta?.[s] || []).find((a: any) => a.id === id);
@@ -546,13 +577,13 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
 
   const [showCreativeForm, setShowCreativeForm] = useState(false);
 
-  // Fecha o formulário quando o painel troca de público
+  // Fecha o formulÃ¡rio quando o painel troca de pÃºblico
   useEffect(() => {
     setShowCreativeForm(false);
     setEditingCreativeId(null);
   }, [panelAudience?.id]);
 
-  // ── Destinos de conversão ────────────────────────────────────────────
+  // â”€â”€ Destinos de conversÃ£o â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const destinations: ConversionDestination[] = campaign.destinations || [];
 
   const addDestination = useCallback(() => {
@@ -574,7 +605,8 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
     if (!clone.destinations) return;
     clone.destinations = clone.destinations.filter(d => d.id !== id);
-    // Remove também os vínculos nos criativos
+    // Remove tambÃ©m os vÃ­nculos nos criativos e de parentId
+    ([...clone.destinations]).forEach((d: any) => { if (d.parentId === id) delete d.parentId; });
     (["top","middle","bottom"] as StageKey[]).forEach(st => {
       [...clone.meta[st], ...clone.google[st]].forEach((a: any) => {
         a.creatives?.forEach((cr: any) => {
@@ -582,6 +614,18 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
         });
       });
     });
+    pushUpdate(clone);
+  }, [campaign, pushUpdate]);
+
+  const reorderDestination = useCallback((id: string, dir: "up" | "down") => {
+    const clone = JSON.parse(JSON.stringify(campaign)) as Campaign;
+    if (!clone.destinations) return;
+    const idx = clone.destinations.findIndex(d => d.id === id);
+    if (idx === -1) return;
+    const newIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= clone.destinations.length) return;
+    const [item] = clone.destinations.splice(idx, 1);
+    clone.destinations.splice(newIdx, 0, item);
     pushUpdate(clone);
   }, [campaign, pushUpdate]);
 
@@ -601,7 +645,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
     setTimeout(calculatePaths, 50);
   }, [campaign, pushUpdate, calculatePaths]);
 
-  // Handler global para o drag de conexão criativo → destino
+  // Handler global para o drag de conexÃ£o criativo â†’ destino
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       if (!connectingFromRef.current) return;
@@ -649,7 +693,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
   return (
     <div className="flex flex-col lg:flex-row gap-0 w-full bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm" style={{ minHeight: 600, height: isMobile ? "auto" : 680 }}>
 
-      {/* ── CANVAS ─────────────────────────────────────────────────────────── */}
+      {/* â”€â”€ CANVAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div
         ref={containerRef}
         className="relative flex-1 overflow-hidden pointer-events-auto h-[500px] lg:h-full"
@@ -674,20 +718,20 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
           <span className="text-[10px] font-bold text-slate-400 tabular-nums w-8 text-center select-none">{Math.round(currentZoom * 100)}%</span>
           <button onClick={() => zoomBy(-ZOOM_STEP)} className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"><ZoomOut className="w-3.5 h-3.5" /></button>
           <div className="w-px h-3.5 bg-slate-200 mx-0.5" />
-          <button onClick={resetView} title="Ajustar à tela" className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"><Maximize2 className="w-3 h-3" /></button>
+          <button onClick={resetView} title="Ajustar Ã  tela" className="w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:bg-slate-100 transition-colors"><Maximize2 className="w-3 h-3" /></button>
         </div>
 
         {/* Atalhos */}
         <div className="absolute bottom-3 left-3 z-50 text-[9px] text-slate-300 font-medium select-none pointer-events-none leading-relaxed">
-          Scroll para zoom · Arrastar para navegar · Ctrl+Z desfaz · 2× clique renomeia
+          Scroll para zoom Â· Arrastar para navegar Â· Ctrl+Z desfaz Â· 2Ã— clique renomeia
         </div>
 
-        {/* Canvas transformável */}
+        {/* Canvas transformÃ¡vel */}
         <div
           ref={canvasRef}
           style={{ position: "absolute", top: 0, left: 0, transformOrigin: "0 0", willChange: "transform" }}
         >
-          {/* SVG de conexões */}
+          {/* SVG de conexÃµes */}
           <svg className="absolute inset-0 pointer-events-none z-0 overflow-visible" style={{ width: "100%", height: "100%" }}>
             {connections.map(conn => {
               if (conn.customPath) {
@@ -705,11 +749,11 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
               }
 
               const r   = 12; // raio do canto arredondado
-              const mx  = conn.start.x + (conn.end.x - conn.start.x) * 0.5; // ponto médio x
+              const mx  = conn.start.x + (conn.end.x - conn.start.x) * 0.5; // ponto mÃ©dio x
               const sy  = conn.start.y;
               const ey  = conn.end.y;
               const dySign = ey > sy ? 1 : -1;
-              // Linha reta horizontal → cotovelo Q → linha vertical → cotovelo Q → linha horizontal
+              // Linha reta horizontal â†’ cotovelo Q â†’ linha vertical â†’ cotovelo Q â†’ linha horizontal
               const path = [
                 `M ${conn.start.x} ${sy}`,
                 `L ${mx - r} ${sy}`,
@@ -738,7 +782,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                   <Target className="w-4 h-4" />
                 </div>
                 <h3 className="text-[11px] font-bold text-slate-900 truncate leading-tight">{campaign.name}</h3>
-                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">Estratégia Global</p>
+                <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest mt-1">EstratÃ©gia Global</p>
               </div>
             </div>
 
@@ -768,7 +812,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
               })}
             </div>
 
-            {/* COLUNA 2: ESTÁGIOS + PÚBLICOS */}
+            {/* COLUNA 2: ESTÃGIOS + PÃšBLICOS */}
             <div className="flex flex-col" style={{ gap: 28 }}>
               {(["top","middle","bottom"] as StageKey[]).map(stageKey => {
                 const metaAuds   = campaign.budgetAllocation.metaEnabled   ? (campaign.meta?.[stageKey]   || []) : [];
@@ -786,7 +830,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
 
                 return (
                   <div key={stageKey} className="flex items-start relative" style={{ gap: 28 }}>
-                    {/* Nó de estágio */}
+                    {/* NÃ³ de estÃ¡gio */}
                     <div className="flex flex-col items-start gap-1.5 pt-1">
                       <motion.div
                         id={`node-stage-${stageKey}`}
@@ -799,10 +843,10 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                         </div>
                         <span className="text-[11px] font-extrabold text-slate-900">{FLOW_STAGE_LABELS[stageKey].label}</span>
                         <div className="flex items-center gap-1 mt-1">
-                          <span className="text-[8px] font-bold text-slate-500 truncate flex-1">{campaign.funnel[stageKey]?.metricValue || "—"}</span>
-                          <PenLine className="w-2 h-2 text-slate-300 flex-shrink-0" />
+                          <span className="text-[8px] font-bold text-slate-500 truncate flex-1">{campaign.funnel[stageKey]?.metricValue || "â€”"}</span>
+                          <PenLine className="w-2.5 h-2.5 text-slate-300 flex-shrink-0" />
                         </div>
-                        {/* Botão recolher */}
+                        {/* BotÃ£o recolher */}
                         <button
                           onClick={toggleCollapse}
                           className="mt-1.5 w-full flex items-center justify-center gap-1 text-[8px] font-bold text-slate-400 hover:text-slate-600 transition-colors"
@@ -847,7 +891,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                       )}
                     </AnimatePresence>
 
-                    {/* Sub-grupos de públicos + criativos */}
+                    {/* Sub-grupos de pÃºblicos + criativos */}
                     <AnimatePresence initial={false}>
                     {!isCollapsed && (
                     <motion.div
@@ -859,7 +903,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                     >
                     <div className="flex flex-col" style={{ gap: 12 }}>
 
-                      {/* ── Meta ── */}
+                      {/* â”€â”€ Meta â”€â”€ */}
                       {campaign.budgetAllocation.metaEnabled && (
                         <DropZone
                           active={draggingAudience?.channel === "meta" && draggingAudience?.stage !== stageKey}
@@ -868,7 +912,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                           onEnter={() => { if (draggingAudience?.channel === "meta") setAudienceDropTarget({ channel: "meta", stage: stageKey }); }}
                           onLeave={() => { if (draggingAudience?.channel === "meta") setAudienceDropTarget(null); }}
                         >
-                          {metaAuds.map((aud: any) => (
+                          {metaAuds.map((aud: any, audIdx: number) => (
                             <div key={aud.id} className="flex items-start" style={{ gap: 20 }}>
                               <AudienceNode
                                 audience={aud}
@@ -889,10 +933,14 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                     moveAudience(draggingAudience.audienceId, draggingAudience.channel, draggingAudience.stage, audienceDropTarget.channel, audienceDropTarget.stage);
                                   setDraggingAudience(null); setAudienceDropTarget(null);
                                 }}
+                                onReorderUp={() => reorderAudience(aud.id, "meta", stageKey, "up")}
+                                onReorderDown={() => reorderAudience(aud.id, "meta", stageKey, "down")}
+                                isFirst={audIdx === 0}
+                                isLast={audIdx === metaAuds.length - 1}
                               />
                               {aud.creatives.length > 0 && (
                                 <div className="flex flex-col" style={{ gap: 6 }}>
-                                  {aud.creatives.map((cr: any) => (
+                                  {aud.creatives.map((cr: any, crIdx: number) => (
                                     <CreativeNode key={cr.id} creative={cr} audienceId={aud.id} channel="meta"
                                       destinations={destinations}
                                       onStartConnect={(e) => { connectingFromRef.current = { creativeId: cr.id, audienceId: aud.id, channel: "meta", stage: stageKey }; setConnectingFrom({ creativeId: cr.id, audienceId: aud.id, channel: "meta", stage: stageKey }); }}
@@ -908,6 +956,10 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                         draggingCreativeRef.current = null;
                                         setDraggingCreative(null); setCreativeDropTarget(null);
                                       }}
+                                      onReorderUp={() => reorderCreative(cr.id, aud.id, "meta", stageKey, "up")}
+                                      onReorderDown={() => reorderCreative(cr.id, aud.id, "meta", stageKey, "down")}
+                                      isFirst={crIdx === 0}
+                                      isLast={crIdx === aud.creatives.length - 1}
                                     />
                                   ))}
                                 </div>
@@ -915,7 +967,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                             </div>
                           ))}
                           <div className="flex gap-2">
-                            <AddButton label="Público Meta" color="blue" onClick={() => addAudience("meta", stageKey)} />
+                            <AddButton label="PÃºblico Meta" color="blue" onClick={() => addAudience("meta", stageKey)} />
                             <button
                               onClick={() => { setLibraryStageKey(stageKey); setLibraryChannel("meta"); }}
                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-blue-50 text-blue-400 hover:bg-blue-100 transition-colors border border-blue-200 shadow-sm"
@@ -927,7 +979,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                         </DropZone>
                       )}
 
-                      {/* ── Google ── */}
+                      {/* â”€â”€ Google â”€â”€ */}
                       {campaign.budgetAllocation.googleEnabled && (
                         <DropZone
                           active={draggingAudience?.channel === "google" && draggingAudience?.stage !== stageKey}
@@ -936,7 +988,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                           onEnter={() => { if (draggingAudience?.channel === "google") setAudienceDropTarget({ channel: "google", stage: stageKey }); }}
                           onLeave={() => { if (draggingAudience?.channel === "google") setAudienceDropTarget(null); }}
                         >
-                          {googleAuds.map((aud: any) => (
+                          {googleAuds.map((aud: any, audIdx: number) => (
                             <div key={aud.id} className="flex items-start" style={{ gap: 20 }}>
                               <AudienceNode
                                 audience={aud}
@@ -957,10 +1009,14 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                     moveAudience(draggingAudience.audienceId, draggingAudience.channel, draggingAudience.stage, audienceDropTarget.channel, audienceDropTarget.stage);
                                   setDraggingAudience(null); setAudienceDropTarget(null);
                                 }}
+                                onReorderUp={() => reorderAudience(aud.id, "google", stageKey, "up")}
+                                onReorderDown={() => reorderAudience(aud.id, "google", stageKey, "down")}
+                                isFirst={audIdx === 0}
+                                isLast={audIdx === googleAuds.length - 1}
                               />
                               {aud.creatives.length > 0 && (
                                 <div className="flex flex-col" style={{ gap: 6 }}>
-                                  {aud.creatives.map((cr: any) => (
+                                  {aud.creatives.map((cr: any, crIdx: number) => (
                                     <CreativeNode key={cr.id} creative={cr} audienceId={aud.id} channel="google"
                                       destinations={destinations}
                                       onStartConnect={(e) => { connectingFromRef.current = { creativeId: cr.id, audienceId: aud.id, channel: "google", stage: stageKey }; setConnectingFrom({ creativeId: cr.id, audienceId: aud.id, channel: "google", stage: stageKey }); }}
@@ -976,6 +1032,10 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                         draggingCreativeRef.current = null;
                                         setDraggingCreative(null); setCreativeDropTarget(null);
                                       }}
+                                      onReorderUp={() => reorderCreative(cr.id, aud.id, "google", stageKey, "up")}
+                                      onReorderDown={() => reorderCreative(cr.id, aud.id, "google", stageKey, "down")}
+                                      isFirst={crIdx === 0}
+                                      isLast={crIdx === aud.creatives.length - 1}
                                     />
                                   ))}
                                 </div>
@@ -983,7 +1043,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                             </div>
                           ))}
                           <div className="flex gap-2">
-                            <AddButton label="Público Google" color="emerald" onClick={() => addAudience("google", stageKey)} />
+                            <AddButton label="PÃºblico Google" color="emerald" onClick={() => addAudience("google", stageKey)} />
                             <button
                               onClick={() => { setLibraryStageKey(stageKey); setLibraryChannel("google"); }}
                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-emerald-50 text-emerald-400 hover:bg-emerald-100 transition-colors border border-emerald-200 shadow-sm"
@@ -1001,63 +1061,67 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                   </div>
                 );
               })}
+              
+              {/* LOOP DE RETARGETING ESTRATÃ‰GICO */}
+              {(campaign.destinations || []).some(d => d.type === "retargeting") && (
+                <div id="node-retargeting-loop" className="mx-auto mt-4 group">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-violet-50 border-2 border-violet-200 flex items-center justify-center shadow-sm group-hover:border-violet-400 transition-colors" title="Strategic Loop">
+                      <RefreshCw className="w-4 h-4 text-violet-500 animate-[spin_6s_linear_infinite]" />
+                    </div>
+                    <span className="text-[8px] font-black text-violet-400 uppercase tracking-widest text-center">Loop de<br/>Retargeting</span>
+                  </div>
+                </div>
+              )}
             </div>
-            {/* COLUNA 3: DESTINOS */}
-            {destinations.length > 0 && (
+
+            {/* COLUNA 3: DESTINOS DE CONVERSÃƒO */}
+            {(campaign.destinations || []).filter(d => d.type !== "retargeting").length > 0 && (
               <div className="flex flex-col justify-center pt-20" style={{ gap: 16 }}>
-                <div className="text-[8px] font-black uppercase tracking-widest text-amber-500 mb-1 text-center">Destinos</div>
-                {destinations.map(dest => (
+                <div className="text-[8px] font-black uppercase tracking-widest text-emerald-500 mb-1 text-center font-black">Destinos de ConversÃ£o</div>
+                {(campaign.destinations || []).filter(d => d.type !== "retargeting").map(dest => (
                   <div
                     key={dest.id}
                     id={`node-dest-${dest.id}`}
-                    data-dest-id={dest.id}
-                    className={`w-36 p-3 rounded-2xl shadow-sm border-2 transition-all ${
-                      hoveredDestId === dest.id
-                        ? "bg-amber-100 border-amber-400 scale-105"
-                        : "bg-amber-50 border-amber-200"
-                    }`}
+                    className="w-36 p-3 rounded-2xl shadow-sm border-2 bg-white border-slate-200 hover:border-emerald-300 transition-all cursor-default group"
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
-                      <div className="w-5 h-5 rounded-lg bg-amber-400 flex items-center justify-center shrink-0">
-                        <Link2 className="w-3 h-3 text-white" />
+                      <div className="w-5 h-5 rounded-lg bg-emerald-500 flex items-center justify-center shrink-0 shadow-sm border border-emerald-400">
+                        <Target className="w-3 h-3 text-white" />
                       </div>
-                      <span className="text-[11px] font-bold text-amber-900 truncate">{dest.label || "Sem título"}</span>
+                      <span className="text-[11px] font-bold text-slate-800 truncate">{dest.label || "Sem tÃ­tulo"}</span>
                     </div>
                     {dest.event && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <Zap className="w-2.5 h-2.5 text-amber-400" />
-                        <span className="text-[9px] font-bold text-amber-600">{dest.event}</span>
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter">{dest.event}</span>
                       </div>
-                    )}
-                    {dest.url && (
-                      <p className="text-[8px] text-amber-500 truncate font-mono">{dest.url.replace(/^https?:\/\//, "")}</p>
                     )}
                   </div>
                 ))}
               </div>
             )}
-
           </div>
+
+          {/* Linha temporÃ¡ria de conexÃ£o */}
+          {connectingLine && (
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-50 overflow-visible">
+              <defs>
+                <marker id="arrow-tmp" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
+                </marker>
+              </defs>
+              <line
+                x1={connectingLine.x1} y1={connectingLine.y1}
+                x2={connectingLine.x2} y2={connectingLine.y2}
+                stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 4"
+                markerEnd="url(#arrow-tmp)"
+              />
+            </svg>
+          )}
         </div>
 
-        {/* Linha temporária de conexão */}
-        {connectingLine && (
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-50 overflow-visible">
-            <defs>
-              <marker id="arrow-tmp" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                <path d="M0,0 L6,3 L0,6 Z" fill="#f59e0b" />
-              </marker>
-            </defs>
-            <line
-              x1={connectingLine.x1} y1={connectingLine.y1}
-              x2={connectingLine.x2} y2={connectingLine.y2}
-              stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 4"
-              markerEnd="url(#arrow-tmp)"
-            />
-          </svg>
-        )}
-
-        {/* Botão Desfazer */}
+        {/* BotÃ£o Desfazer */}
         <AnimatePresence>
           {history.length > 0 && (
             <motion.button
@@ -1082,11 +1146,11 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
             className={`flex-shrink-0 overflow-hidden border-t lg:border-t-0 lg:border-l border-slate-200 bg-white z-50 ${isMobile ? "w-full" : ""}`}
           >
             <div className={`${isMobile ? "w-full" : "w-[280px]"} h-full flex flex-col overflow-hidden`}>
-              {/* Cabeçalho / Edição de Público */}
+              {/* CabeÃ§alho / EdiÃ§Ã£o de PÃºblico */}
               <div className="flex items-start justify-between gap-2 px-4 pt-4 pb-3 border-b border-slate-200 bg-slate-50/30">
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className={`text-[8px] font-black uppercase tracking-widest ${panelData.channel === "meta" ? "text-blue-500" : "text-emerald-500"}`}>
-                    {panelData.channel === "meta" ? "Meta Ads" : "Google Ads"} · {FLOW_STAGE_LABELS[panelData.stage].label}
+                    {panelData.channel === "meta" ? "Meta Ads" : "Google Ads"} Â· {FLOW_STAGE_LABELS[panelData.stage].label}
                   </div>
                   <input
                     value={panelData.audience.title}
@@ -1107,12 +1171,12 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                       label="Sobre" 
                       value={panelData.audience.about || ""} 
                       onChange={(v) => updateAudience(panelData.audience.id, panelData.channel, panelData.stage, { about: v })}
-                      placeholder="Descrição detalhada do público"
+                      placeholder="DescriÃ§Ã£o detalhada do pÃºblico"
                       multiline
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <Field 
-                        label="Gênero" 
+                        label="GÃªnero" 
                         value={panelData.audience.gender || ""} 
                         onChange={(v) => updateAudience(panelData.audience.id, panelData.channel, panelData.stage, { gender: v })}
                         placeholder="Ex: Ambos"
@@ -1128,7 +1192,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                       label="Interesses" 
                       value={panelData.audience.interests || ""} 
                       onChange={(v) => updateAudience(panelData.audience.id, panelData.channel, panelData.stage, { interests: v })}
-                      placeholder="Ex: Tecnologia, Imóveis"
+                      placeholder="Ex: Tecnologia, ImÃ³veis"
                     />
                     <Field 
                       label="Palavras-chave" 
@@ -1171,7 +1235,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                   </button>
                 </div>
 
-                {/* Formulário inline de novo criativo */}
+                {/* FormulÃ¡rio inline de novo criativo */}
                 <AnimatePresence>
                   {showCreativeForm && (
                     <CreativeForm
@@ -1191,7 +1255,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                       <Box className="w-5 h-5 text-slate-200" />
                     </div>
                     <p className="text-[10px] text-slate-300 font-medium">Nenhum criativo vinculado</p>
-                    <p className="text-[9px] text-slate-200 mt-1">Crie ou arraste criativos para cá</p>
+                    <p className="text-[9px] text-slate-200 mt-1">Crie ou arraste criativos para cÃ¡</p>
                   </div>
                 )}
 
@@ -1280,7 +1344,7 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
                                   onClick={() => setEditingCreativeId(null)}
                                   className="px-4 py-1.5 bg-slate-900 text-white text-[10px] font-bold rounded-lg hover:bg-slate-800 transition-colors"
                                 >
-                                  Concluir Edição
+                                  Concluir EdiÃ§Ã£o
                                 </button>
                               </div>
                             </div>
@@ -1296,570 +1360,13 @@ export function StrategyFlow({ campaign, onUpdate }: StrategyFlowProps) {
         )}
       </AnimatePresence>
 
-      {/* ── PAINEL DE DESTINOS ─────────────────────────────────────────────── */}
       <DestinationsPanel
         destinations={destinations}
         onAdd={addDestination}
         onUpdate={updateDestination}
         onDelete={deleteDestination}
+        onReorder={reorderDestination}
       />
     </div>
-  );
-}
-
-// ── Painel de Destinos ────────────────────────────────────────────────────
-
-function DestinationsPanel({ destinations, onAdd, onUpdate, onDelete }: {
-  destinations: ConversionDestination[];
-  onAdd: () => void;
-  onUpdate: (id: string, data: Partial<ConversionDestination>) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-
-  return (
-    <div className="flex-shrink-0 w-[240px] border-l border-slate-200 bg-slate-50/50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-amber-400 flex items-center justify-center">
-            <Link2 className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Destinos</span>
-        </div>
-        <button
-          onClick={onAdd}
-          className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 hover:bg-amber-100 transition-colors"
-          title="Adicionar destino"
-        >
-          <Plus className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      {/* Lista */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-        {destinations.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <div className="w-10 h-10 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center mb-3">
-              <Link2 className="w-5 h-5 text-amber-200" />
-            </div>
-            <p className="text-[10px] text-slate-300 font-medium">Nenhum destino</p>
-            <p className="text-[9px] text-slate-200 mt-1">Clique em + para adicionar</p>
-          </div>
-        )}
-
-        {destinations.map(dest => {
-          const isEditing = editingId === dest.id;
-          return (
-            <div key={dest.id} className={`rounded-xl border bg-white shadow-sm overflow-hidden transition-all ${isEditing ? "border-amber-300" : "border-slate-200"}`}>
-              {/* Cabeçalho do card */}
-              <div className="flex items-center gap-2 px-3 py-2.5">
-                {dest.type === "retargeting"
-                  ? <RotateCcw className="w-3.5 h-3.5 text-violet-500 shrink-0" />
-                  : <Zap className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                }
-                <span className="flex-1 text-[11px] font-bold text-slate-800 truncate">{dest.label || "Sem título"}</span>
-                <button
-                  title={dest.type === "retargeting" ? "Retargeting — clique para mudar para conversão" : "Conversão — clique para mudar para retargeting"}
-                  onClick={() => onUpdate(dest.id, { type: dest.type === "retargeting" ? "conversion" : "retargeting" })}
-                  className={`p-1 rounded-lg transition-colors text-[8px] font-black tracking-wide px-1.5 ${dest.type === "retargeting" ? "bg-violet-100 text-violet-600 hover:bg-violet-200" : "bg-amber-50 text-amber-400 hover:bg-amber-100"}`}
-                >
-                  {dest.type === "retargeting" ? "RTG" : "CVR"}
-                </button>
-                <button
-                  onClick={() => setEditingId(isEditing ? null : dest.id)}
-                  className={`p-1 rounded-lg transition-colors ${isEditing ? "bg-amber-500 text-white" : "text-slate-300 hover:text-amber-500 hover:bg-amber-50"}`}
-                >
-                  {isEditing ? <Check className="w-3 h-3" /> : <Pencil className="w-3 h-3" />}
-                </button>
-                <button
-                  onClick={() => onDelete(dest.id)}
-                  className="p-1 rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-50 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </div>
-
-              {/* Formulário de edição */}
-              {isEditing && (
-                <div className="px-3 pb-3 space-y-2 border-t border-amber-100 pt-2">
-                  <div>
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Nome</label>
-                    <input
-                      value={dest.label}
-                      onChange={e => onUpdate(dest.id, { label: e.target.value })}
-                      className="w-full text-[11px] font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
-                      placeholder="Ex: Página de obrigado"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">URL de destino</label>
-                    <input
-                      value={dest.url}
-                      onChange={e => onUpdate(dest.id, { url: e.target.value })}
-                      className="w-full text-[10px] font-mono text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
-                      placeholder="https://site.com/obrigado"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Evento de conversão</label>
-                    <input
-                      value={dest.event || ""}
-                      onChange={e => onUpdate(dest.id, { event: e.target.value })}
-                      className="w-full text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5"
-                      placeholder="Ex: Purchase, Lead"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Observação</label>
-                    <textarea
-                      value={dest.note || ""}
-                      onChange={e => onUpdate(dest.id, { note: e.target.value })}
-                      rows={2}
-                      className="w-full text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-amber-300 mt-0.5 resize-none"
-                      placeholder="Observações sobre este destino"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Preview resumido quando fechado */}
-              {!isEditing && (dest.url || dest.event || dest.type) && (
-                <div className="px-3 pb-2.5 space-y-1">
-                  {dest.type === "retargeting" && (
-                    <div className="flex items-center gap-1">
-                      <RotateCcw className="w-2.5 h-2.5 text-violet-500" />
-                      <span className="text-[9px] font-bold text-violet-600">Retargeting — reconecta ao funil</span>
-                    </div>
-                  )}
-                  {dest.event && (
-                    <div className="flex items-center gap-1">
-                      <Zap className="w-2.5 h-2.5 text-amber-400" />
-                      <span className="text-[9px] font-bold text-amber-600">{dest.event}</span>
-                    </div>
-                  )}
-                  {dest.url && (
-                    <div className="flex items-center gap-1 group">
-                      <ExternalLink className="w-2.5 h-2.5 text-slate-300 shrink-0" />
-                      <a
-                        href={dest.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        className="text-[9px] text-slate-400 truncate font-mono hover:text-amber-600 hover:underline transition-colors"
-                      >
-                        {dest.url.replace(/^https?:\/\//, "")}
-                      </a>
-                    </div>
-                  )}
-                  {dest.note && (
-                    <p className="text-[9px] text-slate-400 italic line-clamp-2">{dest.note}</p>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-// ── Sub-componentes ────────────────────────────────────────────────────────
-
-function DropZone({ children, active, isTarget, accentColor, onEnter, onLeave }: {
-  children: React.ReactNode;
-  active: boolean;
-  isTarget: boolean;
-  accentColor: "blue" | "emerald";
-  onEnter: () => void;
-  onLeave: () => void;
-}) {
-  const colors = {
-    blue:    { target: "bg-blue-50/80 ring-2 ring-blue-300 ring-dashed",    idle: "ring-1 ring-dashed ring-slate-200" },
-    emerald: { target: "bg-emerald-50/80 ring-2 ring-emerald-300 ring-dashed", idle: "ring-1 ring-dashed ring-slate-200" },
-  };
-  return (
-    <div
-      className={`flex flex-col rounded-xl p-1.5 -m-1.5 transition-all ${active ? (isTarget ? colors[accentColor].target : colors[accentColor].idle) : ""}`}
-      style={{ gap: 8 }}
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-    >
-      {children}
-    </div>
-  );
-}
-
-function AddButton({ label, color, onClick }: { label: string; color: "blue"|"emerald"; onClick: () => void }) {
-  const cls = color === "blue"
-    ? "hover:border-blue-300 hover:text-blue-500 hover:bg-blue-50/40"
-    : "hover:border-emerald-300 hover:text-emerald-500 hover:bg-emerald-50/40";
-  return (
-    <motion.button
-      whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-      onClick={e => { e.stopPropagation(); onClick(); }}
-      className={`w-48 py-2 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 transition-all flex items-center justify-center gap-1.5 ${cls}`}
-    >
-      <Plus className="w-3 h-3" /> {label}
-    </motion.button>
-  );
-}
-
-interface AudienceNodeProps {
-  audience: any;
-  channel: "meta"|"google";
-  isHovered: boolean;
-  isPanelOpen: boolean;
-  isCreativeDropTarget: boolean;
-  onClick: () => void;
-  onDragOver: () => void;
-  onDragLeave: () => void;
-  onDelete: () => void;
-  onDuplicate: () => void;
-  onRename: (title: string) => void;
-  onDragStartAudience: () => void;
-  onDragEndAudience: () => void;
-  onToggleFlow: () => void;
-}
-
-function AudienceNode({ audience, channel, isHovered, isPanelOpen, isCreativeDropTarget, onClick, onDragOver, onDragLeave, onDelete, onDuplicate, onRename, onDragStartAudience, onDragEndAudience, onToggleFlow }: AudienceNodeProps) {
-  const [editing, setEditing] = useState(false);
-  const creativeCount = audience.creatives.length;
-  const statusColor = creativeCount === 0 ? "bg-red-100 text-red-400" : creativeCount < 3 ? "bg-amber-100 text-amber-500" : "bg-emerald-100 text-emerald-600";
-
-  return (
-    <motion.div
-      id={`node-aud-${audience.id}`}
-      data-audience-id={audience.id}
-      drag dragSnapToOrigin
-      onDragStart={onDragStartAudience}
-      onDragEnd={onDragEndAudience}
-      onMouseEnter={onDragOver}
-      onMouseLeave={onDragLeave}
-      onClick={onClick}
-      data-draggable="true"
-      whileDrag={{ scale: 1.04, zIndex: 100, boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.13)" }}
-      className={`w-48 p-2.5 rounded-xl border-2 transition-all cursor-pointer relative group ${
-        isCreativeDropTarget
-          ? channel === "meta" ? "bg-blue-50 border-blue-400 border-dashed shadow-md ring-2 ring-blue-300/40" : "bg-emerald-50 border-emerald-400 border-dashed shadow-md ring-2 ring-emerald-300/40"
-          : isPanelOpen
-          ? channel === "meta" ? "bg-blue-50 border-blue-500 shadow-md ring-4 ring-blue-500/10" : "bg-emerald-50 border-emerald-500 shadow-md ring-4 ring-emerald-500/10"
-          : isHovered
-          ? "bg-blue-50 border-blue-400 border-dashed shadow-md"
-           : "bg-white border-slate-200 hover:border-slate-300 shadow-sm"
-      }`}
-    >
-      <div className="flex items-center gap-2">
-        <div className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 ${
-          channel === "meta"
-            ? isPanelOpen ? "bg-blue-600 text-white" : "bg-blue-50 text-blue-500"
-            : isPanelOpen ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-500"
-        }`}>
-          {channel === "meta" ? <MetaIcon className="w-3.5 h-3.5" color={isPanelOpen ? "white" : undefined} /> : <GoogleIcon className="w-3.5 h-3.5" />}
-        </div>
-        <div className="flex-1 min-w-0">
-          {editing ? (
-            <input
-              autoFocus
-              defaultValue={audience.title}
-              onBlur={e => { onRename(e.target.value); setEditing(false); }}
-              onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditing(false); }}
-              onClick={e => e.stopPropagation()}
-              className="text-[11px] font-bold text-slate-900 bg-transparent border-b border-blue-400 outline-none w-full"
-            />
-          ) : (
-            <p className="text-[11px] font-bold text-slate-900 truncate" onDoubleClick={e => { e.stopPropagation(); setEditing(true); }}>
-              {audience.title || "Público sem nome"}
-            </p>
-          )}
-        </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          <button
-            title={audience.showInFlow ? "Ocultar do fluxo" : "Mostrar no fluxo"}
-            onClick={e => { e.stopPropagation(); onToggleFlow(); }}
-            className={`p-0.5 rounded transition-colors ${audience.showInFlow ? "text-amber-400 hover:text-amber-500" : "text-slate-200 hover:text-amber-400"}`}
-          >
-            {audience.showInFlow ? <Eye className="w-2.5 h-2.5" /> : <EyeOff className="w-2.5 h-2.5" />}
-          </button>
-          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-200 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity">
-            <Copy className="w-2.5 h-2.5" />
-          </button>
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-200 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-            <X className="w-2.5 h-2.5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Badge de criativos + indicador de status */}
-      <div className="flex items-center justify-between mt-2 px-0.5">
-        <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full ${statusColor}`}>
-          {creativeCount} {creativeCount === 1 ? "criativo" : "criativos"}
-        </span>
-        {isPanelOpen && <ChevronRight className="w-2.5 h-2.5 text-slate-400" />}
-      </div>
-
-      <div className="absolute right-1.5 bottom-1.5 text-slate-200 group-hover:text-slate-300 transition-colors">
-        <GripVertical className="w-2.5 h-2.5" />
-      </div>
-    </motion.div>
-  );
-}
-
-function CreativeNode({ creative, audienceId, channel, destinations, onStartConnect, onDuplicate, onDelete, onDragStart, onDragEnd }: {
-  creative: any; audienceId: string; channel: "meta" | "google";
-  destinations: ConversionDestination[];
-  onStartConnect: (e: React.PointerEvent) => void;
-  onDuplicate: () => void; onDelete: () => void;
-  onDragStart: () => void; onDragEnd: (e: any, info: any) => void;
-}) {
-  const isGoogle = channel === "google";
-  const accent = isGoogle ? "text-emerald-600 bg-emerald-50 border-emerald-200" : "text-blue-600 bg-blue-50 border-blue-200";
-  const linkedIds: string[] = creative.destinationIds || [];
-  const hasLinks = linkedIds.length > 0;
-
-  return (
-    <div className="relative group/cr">
-      <motion.div
-        id={`node-cr-${creative.id}`}
-        drag dragSnapToOrigin
-        data-draggable="true"
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
-        initial={{ opacity: 0, x: -6 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.2 }}
-        whileDrag={{ scale: 1.08, zIndex: 100, boxShadow: "0 12px 20px -4px rgb(0 0 0 / 0.15)", opacity: 0.9 }}
-        className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border ${accent} shadow-sm cursor-grab active:cursor-grabbing`}
-        style={{ width: 152 }}
-      >
-        <div className="shrink-0 opacity-70">{creativeIcon(creative.format)}</div>
-        <div className="min-w-0 flex-1">
-          <p className="text-[9px] font-bold text-slate-700 truncate leading-none">{creative.name || creative.format}</p>
-          <p className="text-[8px] text-slate-400 mt-0.5 leading-none">{creative.format}</p>
-        </div>
-        <div className="flex items-center gap-0.5 opacity-0 group-hover/cr:opacity-100 transition-opacity flex-shrink-0">
-          <button onClick={e => { e.stopPropagation(); onDuplicate(); }} className="p-0.5 rounded text-slate-300 hover:text-blue-400">
-            <Copy className="w-2 h-2" />
-          </button>
-          <button onClick={e => { e.stopPropagation(); onDelete(); }} className="p-0.5 rounded text-slate-300 hover:text-red-400">
-            <X className="w-2 h-2" />
-          </button>
-        </div>
-      </motion.div>
-
-      {/* Handle de conexão — aparece ao hover no lado direito */}
-      {destinations.length > 0 && (
-        <div
-          data-connect-handle="true"
-          onPointerDown={e => { e.stopPropagation(); e.preventDefault(); onStartConnect(e); }}
-          className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-[10px] w-4 h-4 rounded-full border-2 flex items-center justify-center cursor-crosshair z-20 opacity-0 group-hover/cr:opacity-100 transition-all hover:scale-125 ${
-            hasLinks ? "bg-amber-400 border-amber-500" : "bg-white border-amber-400"
-          }`}
-          title="Arrastar para conectar a um destino"
-        >
-          <div className={`w-1.5 h-1.5 rounded-full ${hasLinks ? "bg-white" : "bg-amber-400"}`} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CreativeForm({ channel, onSave, onCancel }: {
-  channel: "meta" | "google";
-  onSave: (creative: any) => void;
-  onCancel: () => void;
-}) {
-  const metaFormats = ["Image", "Video", "Carousel"] as const;
-  const googleFormats = ["Search", "Display", "YouTube", "Discovery", "PMax"] as const;
-  const formats = channel === "meta" ? metaFormats : googleFormats;
-
-  const [name, setName]           = useState("");
-  const [format, setFormat]       = useState(formats[0] as string);
-  const [imageUrl, setImageUrl]   = useState("");
-  const [headline, setHeadline]   = useState("");
-  const [primaryText, setPrimaryText] = useState("");
-  const [cta, setCta]             = useState("");
-  const [description, setDescription] = useState("");
-
-  const btnCls   = channel === "meta" ? "bg-blue-600 hover:bg-blue-700" : "bg-emerald-600 hover:bg-emerald-700";
-  const inputCls = `w-full px-2 py-1.5 text-[10px] border border-slate-200 rounded-lg outline-none ${
-    channel === "meta" ? "focus:border-blue-400" : "focus:border-emerald-400"
-  } placeholder:text-slate-300`;
-
-  const handleSave = () => {
-    if (!name.trim()) return;
-    const base = { name: name.trim(), format, imageUrl, headline };
-    const creative = channel === "meta"
-      ? { ...base, primaryText, cta }
-      : { ...base, description };
-    onSave(creative);
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.15 }}
-      className="overflow-hidden"
-    >
-      <div className={`flex flex-col gap-2 p-3 rounded-xl border-2 border-dashed mb-2 ${
-        channel === "meta" ? "border-blue-200 bg-blue-50/40" : "border-emerald-200 bg-emerald-50/40"
-      }`}>
-        <p className={`text-[8px] font-black uppercase tracking-widest ${channel === "meta" ? "text-blue-500" : "text-emerald-500"}`}>
-          Novo Criativo
-        </p>
-
-        <input
-          autoFocus
-          value={name}
-          onChange={e => setName(e.target.value)}
-          placeholder="Nome do criativo *"
-          className={inputCls}
-        />
-
-        <select
-          value={format}
-          onChange={e => setFormat(e.target.value)}
-          className={inputCls}
-        >
-          {formats.map(f => <option key={f} value={f}>{f}</option>)}
-        </select>
-
-        {(format === "Image" || format === "Display" || format === "Carousel" || format === "Discovery" || format === "PMax") && (
-          <input
-            value={imageUrl}
-            onChange={e => setImageUrl(e.target.value)}
-            placeholder="URL da imagem"
-            className={inputCls}
-          />
-        )}
-
-        <input
-          value={headline}
-          onChange={e => setHeadline(e.target.value)}
-          placeholder="Título / Headline"
-          className={inputCls}
-        />
-
-        {channel === "meta" ? (
-          <>
-            <textarea
-              value={primaryText}
-              onChange={e => setPrimaryText(e.target.value)}
-              placeholder="Texto principal"
-              rows={2}
-              className={`${inputCls} resize-none`}
-            />
-            <input
-              value={cta}
-              onChange={e => setCta(e.target.value)}
-              placeholder="CTA (ex: Saiba mais)"
-              className={inputCls}
-            />
-          </>
-        ) : (
-          <textarea
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="Descrição"
-            rows={2}
-            className={`${inputCls} resize-none`}
-          />
-        )}
-
-        <div className="flex gap-1.5 mt-1">
-          <button
-            onClick={handleSave}
-            disabled={!name.trim()}
-            className={`flex-1 py-1.5 text-white text-[9px] font-bold rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${btnCls}`}
-          >
-            Salvar
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-3 text-slate-400 text-[10px] rounded-lg hover:bg-slate-100 transition-colors"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function MetricPopover({ metricValue, metricUnit, onSubmit, onClose }: {
-  metricValue: string; metricUnit: string;
-  onSubmit: (v: string, u: string) => void;
-  onClose: () => void;
-}) {
-  const [v, setV] = useState(metricValue);
-  const [u, setU] = useState(metricUnit);
-  return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.13 }}
-      className="w-28 bg-white rounded-xl border border-slate-200 shadow-lg p-2.5 flex flex-col gap-2 overflow-hidden"
-    >
-      <input value={v} onChange={e => setV(e.target.value)} placeholder="Valor" className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded-lg outline-none focus:border-blue-400" />
-      <input value={u} onChange={e => setU(e.target.value)} placeholder="Unidade" className="w-full px-2 py-1 text-[10px] border border-slate-200 rounded-lg outline-none focus:border-blue-400" />
-      <div className="flex gap-1">
-        <button onClick={() => onSubmit(v, u)} className="flex-1 py-1 bg-blue-600 text-white text-[9px] font-bold rounded-lg hover:bg-blue-700 transition-colors">Salvar</button>
-        <button onClick={onClose} className="px-2 text-slate-400 text-[11px] rounded-lg hover:bg-slate-100 transition-colors">×</button>
-      </div>
-    </motion.div>
-  );
-}
-
-function LibraryPopover({ onSelect, onClose }: { onSelect: (s: any) => void; onClose: () => void }) {
-  const { savedAudiences, deleteSavedAudience } = useStore();
-  
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9, y: 10 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9, y: 10 }}
-       className="absolute top-full left-32 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 z-[100] p-4 overflow-hidden"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Biblioteca da Agência</h4>
-        <button onClick={onClose} className="text-slate-300 hover:text-slate-500 transition-colors"><X className="w-3.5 h-3.5" /></button>
-      </div>
-      
-      <div className="max-h-60 overflow-y-auto space-y-2 pr-1 custom-scrollbar">
-        {savedAudiences.length === 0 ? (
-          <div className="py-8 text-center bg-slate-50 rounded-xl">
-            <Book className="w-6 h-6 text-slate-200 mx-auto mb-2" />
-            <p className="text-[10px] text-slate-400">Nenhum público salvo</p>
-          </div>
-        ) : (
-          savedAudiences.map((saved) => (
-            <div 
-              key={saved.id}
-               className="group relative flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 hover:bg-white hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
-              onClick={() => onSelect(saved)}
-            >
-              <div className="flex-1 min-w-0 pr-6 text-left">
-                <p className="text-[11px] font-bold text-slate-700 truncate">{saved.label}</p>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className={`text-[8px] font-black uppercase tracking-tighter ${saved.type === 'meta' ? 'text-blue-500' : 'text-emerald-500'}`}>
-                    {saved.type === 'meta' ? 'META' : 'GOOGLE'}
-                  </span>
-                  {saved.audience.gender && <span className="text-[8px] text-slate-300">· {saved.audience.gender}</span>}
-                </div>
-              </div>
-              <button 
-                onClick={(e) => { e.stopPropagation(); deleteSavedAudience(saved.id); }}
-                className="absolute right-2 opacity-0 group-hover:opacity-100 p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
-              >
-                <Trash2 className="w-3 h-3" />
-              </button>
-            </div>
-          ))
-        )}
-      </div>
-    </motion.div>
   );
 }

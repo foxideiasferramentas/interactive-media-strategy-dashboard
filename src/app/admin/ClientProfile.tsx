@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { motion } from "motion/react";
 import { ArrowLeft, Building2, Globe, Save, ExternalLink } from "lucide-react";
@@ -14,6 +14,7 @@ export function ClientProfile() {
 
   const [avatar, setAvatar] = useState(client?.logo ?? "");
   const [saved, setSaved] = useState(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   if (!client) {
     return (
@@ -30,7 +31,8 @@ export function ClientProfile() {
   const handleSave = () => {
     updateClient({ ...client, logo: avatar.trim() });
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => setSaved(false), 2000);
   };
 
   const normalized = normalizeMediaUrl(avatar.trim());

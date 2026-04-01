@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   ChevronRight,
   ChevronDown,
+  ChevronUp,
   LayoutDashboard,
   Layers,
   Share2,
@@ -37,7 +38,7 @@ import { useStore } from "../data/store";
 import { toast } from "sonner";
 import { normalizeMediaUrl } from "../utils/media";
 import { StrategyFlow } from "../components/StrategyFlow";
-import { Field, MetaCreativeEditor, GoogleCreativeEditor } from "../components/CreativeEditors";
+import { Field, MetaCreativeEditor, GoogleCreativeEditor, SitelinkListEditor, StructuredSnippetEditor, CallExtensionEditor } from "../components/CreativeEditors";
 import type { 
   Campaign,
   MetaCreative, 
@@ -58,10 +59,12 @@ const EDITOR_STAGE_LABELS = {
   bottom: { label: "Fundo de Funil", short: "Fundo", color: "bg-emerald-600" },
 };
 
+const STAGES: StageKey[] = ["top", "middle", "bottom"];
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function uid() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  return crypto.randomUUID();
 }
 
 // Field moved to CreativeEditors.tsx
@@ -480,6 +483,15 @@ function AudienceEditor<T extends AnyAudience>({
     onChange({ ...audience, creatives } as T);
   };
 
+  const reorderCreative = (index: number, dir: "up" | "down") => {
+    const creatives = [...(audience.creatives as any[])];
+    const newIdx = dir === "up" ? index - 1 : index + 1;
+    if (newIdx < 0 || newIdx >= creatives.length) return;
+    const [item] = creatives.splice(index, 1);
+    creatives.splice(newIdx, 0, item);
+    onChange({ ...audience, creatives } as T);
+  };
+
   return (
     <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white">
       {/* Audience header */}
@@ -658,26 +670,68 @@ function AudienceEditor<T extends AnyAudience>({
               <div className="bg-slate-50 px-5 pt-4 pb-5 space-y-3">
                 {channel === "meta"
                   ? (audience as MetaAudience).creatives.map((c, i) => (
-                      <MetaCreativeEditor
-                        key={c.id}
-                        creative={c}
-                        onChange={(updated) => updateCreative(i, updated)}
-                        onRemove={() => removeCreative(i)}
-                        onDuplicate={() => duplicateCreative(i)}
-                        onSave={() => saveCreative(c.name || "Criativo Meta", "meta", c)}
-                        onMoveCreative={allStageAudiences ? () => setMovingCreativeIndex(i) : undefined}
-                      />
+                      <div key={c.id} className="group/cr-row flex items-start gap-1.5">
+                        <div className="flex flex-col gap-0 pt-3 opacity-0 group-hover/cr-row:opacity-100 transition-opacity shrink-0">
+                          <button
+                            onClick={() => reorderCreative(i, "up")}
+                            disabled={i === 0}
+                            className="p-0.5 rounded text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"
+                            title="Mover criativo para cima"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => reorderCreative(i, "down")}
+                            disabled={i === (audience as MetaAudience).creatives.length - 1}
+                            className="p-0.5 rounded text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"
+                            title="Mover criativo para baixo"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <MetaCreativeEditor
+                            creative={c}
+                            onChange={(updated) => updateCreative(i, updated)}
+                            onRemove={() => removeCreative(i)}
+                            onDuplicate={() => duplicateCreative(i)}
+                            onSave={() => saveCreative(c.name || "Criativo Meta", "meta", c)}
+                            onMoveCreative={allStageAudiences ? () => setMovingCreativeIndex(i) : undefined}
+                          />
+                        </div>
+                      </div>
                     ))
                   : (audience as GoogleAudience).creatives.map((c, i) => (
-                      <GoogleCreativeEditor
-                        key={c.id}
-                        creative={c}
-                        onChange={(updated) => updateCreative(i, updated)}
-                        onRemove={() => removeCreative(i)}
-                        onDuplicate={() => duplicateCreative(i)}
-                        onSave={() => saveCreative(c.name || "Criativo Google", "google", c)}
-                        onMoveCreative={allStageAudiences ? () => setMovingCreativeIndex(i) : undefined}
-                      />
+                      <div key={c.id} className="group/cr-row flex items-start gap-1.5">
+                        <div className="flex flex-col gap-0 pt-3 opacity-0 group-hover/cr-row:opacity-100 transition-opacity shrink-0">
+                          <button
+                            onClick={() => reorderCreative(i, "up")}
+                            disabled={i === 0}
+                            className="p-0.5 rounded text-slate-300 hover:text-emerald-500 disabled:opacity-20 transition-colors"
+                            title="Mover criativo para cima"
+                          >
+                            <ChevronUp className="w-3 h-3" />
+                          </button>
+                          <button
+                            onClick={() => reorderCreative(i, "down")}
+                            disabled={i === (audience as GoogleAudience).creatives.length - 1}
+                            className="p-0.5 rounded text-slate-300 hover:text-emerald-500 disabled:opacity-20 transition-colors"
+                            title="Mover criativo para baixo"
+                          >
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <GoogleCreativeEditor
+                            creative={c}
+                            onChange={(updated) => updateCreative(i, updated)}
+                            onRemove={() => removeCreative(i)}
+                            onDuplicate={() => duplicateCreative(i)}
+                            onSave={() => saveCreative(c.name || "Criativo Google", "google", c)}
+                            onMoveCreative={allStageAudiences ? () => setMovingCreativeIndex(i) : undefined}
+                          />
+                        </div>
+                      </div>
                     ))}
 
               {/* ── Modal Mover Criativo ──────────────────────── */}
@@ -748,7 +802,7 @@ export function StrategyEditor() {
   const [saved, setSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const savedSnapshot = useRef(JSON.stringify(originalCampaign));
-  const [libraryModal, setLibraryModal] = useState<{ channel: Channel } | null>(null);
+  const [libraryModal, setLibraryModal] = useState<{ channel: Channel; stage?: StageKey } | null>(null);
 
   // ── Per-channel budget local state ─────────────────────────────────────────
   const [metaEnabled, setMetaEnabled] = useState(
@@ -885,6 +939,18 @@ export function StrategyEditor() {
     });
   };
 
+  const reorderAudience = (audienceId: string, channel: "meta" | "google", stage: StageKey, dir: "up" | "down") => {
+    const list = channel === "meta" ? [...campaign.meta[stage]] : [...campaign.google[stage]];
+    const idx = list.findIndex((a) => a.id === audienceId);
+    if (idx === -1) return;
+    const newIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= list.length) return;
+    const [item] = list.splice(idx, 1);
+    list.splice(newIdx, 0, item);
+    if (channel === "meta") setMetaAudiences(stage, list as MetaAudience[]);
+    else setGoogleAudiences(stage, list as GoogleAudience[]);
+  };
+
   const addMetaAudience = () => {
     const newAud: MetaAudience = {
       id: uid(),
@@ -931,14 +997,14 @@ export function StrategyEditor() {
   };
 
   const handleShare = () => {
-    const shareUrl = `${window.location.origin}/share/${id}`;
+    const identifier = campaign.slug || campaign.id;
+    const shareUrl = `${window.location.origin}/${identifier}`;
     navigator.clipboard.writeText(shareUrl);
     toast.success("Link público copiado para a área de transferência!");
   };
 
   // ─── Progress counters ──────────────────────────────────────────────────────
 
-  const STAGES: StageKey[] = ["top", "middle", "bottom"];
   const metaTotalAudiences = STAGES.reduce((s, k) => s + campaign.meta[k].length, 0);
   const googleTotalAudiences = STAGES.reduce((s, k) => s + campaign.google[k].length, 0);
   const metaTotalCreatives = STAGES.reduce(
@@ -1248,7 +1314,8 @@ export function StrategyEditor() {
             onClick={() => {
               updateCampaign(campaign);
               setActiveCampaignId(campaign.id);
-              navigate("/");
+              const identifier = campaign.slug || campaign.id;
+              navigate(`/${identifier}`);
             }}
             className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-500 hover:bg-slate-50 border border-slate-200 transition-all flex items-center justify-center gap-2"
           >
@@ -1313,6 +1380,54 @@ export function StrategyEditor() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-10"
             >
+              {/* Campaign Identification */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-white shadow-lg">
+                    <LayoutDashboard className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Identificação da Estratégia</h3>
+                    <p className="text-sm text-slate-500">Defina o nome e o endereço URL da apresentação</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                      Nome da Campanha
+                    </label>
+                    <input
+                      type="text"
+                      value={campaign.name}
+                      onChange={(e) => setCampaign({ ...campaign, name: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                      Slug (URL Amigável)
+                    </label>
+                    <div className="flex items-center gap-2 px-4 py-3 bg-slate-100/50 border border-slate-200 rounded-xl">
+                      <span className="text-xs text-slate-400 font-mono">dashboard/</span>
+                      <input
+                        type="text"
+                        value={campaign.slug || ""}
+                        placeholder="slug-da-campanha"
+                        onChange={(e) => {
+                          const val = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+                          setCampaign({ ...campaign, slug: val });
+                        }}
+                        className="flex-1 bg-transparent border-none p-0 text-sm font-mono text-blue-600 focus:ring-0"
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400">
+                      Este é o link que o cliente verá (ex: dashboard/{campaign.slug || "slug"})
+                    </p>
+                  </div>
+                </div>
+              </div>
               {/* KPIs & Budget */}
               <div>
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -1694,6 +1809,22 @@ export function StrategyEditor() {
                                 placeholder="Descreva a abordagem para esta etapa do funil..."
                                 multiline
                               />
+                              <div className="pt-2 flex flex-wrap gap-2">
+                                <button
+                                  onClick={() => setLibraryModal({ channel: "meta", stage: stageKey })}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-400 hover:border-blue-200 hover:text-blue-500 hover:bg-blue-50/30 transition-all flex items-center gap-1.5"
+                                >
+                                  <Library className="w-3 h-3 text-blue-400" />
+                                  Biblioteca Meta
+                                </button>
+                                <button
+                                  onClick={() => setLibraryModal({ channel: "google", stage: stageKey })}
+                                  className="px-3 py-1.5 rounded-lg border border-slate-200 text-[10px] font-bold text-slate-400 hover:border-emerald-200 hover:text-emerald-500 hover:bg-emerald-50/30 transition-all flex items-center gap-1.5"
+                                >
+                                  <Library className="w-3 h-3 text-emerald-400" />
+                                  Biblioteca Google
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -1835,15 +1966,34 @@ export function StrategyEditor() {
                           <span className="text-[10px] font-bold text-slate-400">{campaign.meta[s].length} Públicos</span>
                         </div>
                         <div className="space-y-1.5">
-                          {campaign.meta[s].map((aud) => (
-                            <button
-                              key={aud.id}
-                              onClick={() => setSelectedAudienceId(aud.id)}
-                              className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-blue-400 hover:shadow-sm transition-all text-left group"
-                            >
-                              <span className="truncate">{aud.title}</span>
-                              <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-blue-500 transition-colors" />
-                            </button>
+                          {campaign.meta[s].map((aud, audIdx) => (
+                            <div key={aud.id} className="group/aud-row flex items-center gap-1">
+                              <div className="flex flex-col gap-0 opacity-0 group-hover/aud-row:opacity-100 transition-opacity shrink-0">
+                                <button
+                                  onClick={() => reorderAudience(aud.id, "meta", s, "up")}
+                                  disabled={audIdx === 0}
+                                  className="p-0.5 rounded text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"
+                                  title="Mover para cima"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => reorderAudience(aud.id, "meta", s, "down")}
+                                  disabled={audIdx === campaign.meta[s].length - 1}
+                                  className="p-0.5 rounded text-slate-300 hover:text-blue-500 disabled:opacity-20 transition-colors"
+                                  title="Mover para baixo"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => setSelectedAudienceId(aud.id)}
+                                className="flex-1 flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-blue-400 hover:shadow-sm transition-all text-left group/btn"
+                              >
+                                <span className="truncate">{aud.title}</span>
+                                <ChevronRight className="w-3 h-3 text-slate-300 group-hover/btn:text-blue-500 transition-colors" />
+                              </button>
+                            </div>
                           ))}
                           <button
                             onClick={() => {
@@ -1857,9 +2007,16 @@ export function StrategyEditor() {
                               setMetaAudiences(s, [...campaign.meta[s], newAud]);
                               setSelectedAudienceId(newAud.id);
                             }}
-                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-blue-200 hover:text-blue-500 hover:bg-white transition-all"
+                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-blue-200 hover:text-blue-500 hover:bg-white transition-all mb-2"
                           >
                             + Adicionar Público
+                          </button>
+                          <button
+                            onClick={() => setLibraryModal({ channel: "meta", stage: s })}
+                            className="w-full p-2 border border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 hover:border-amber-200 hover:text-amber-500 hover:bg-white transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Library className="w-3 h-3" />
+                            Biblioteca
                           </button>
                         </div>
                       </div>
@@ -2080,15 +2237,34 @@ export function StrategyEditor() {
                           <span className="text-[10px] font-bold text-slate-400">{campaign.google[s].length} Públicos</span>
                         </div>
                         <div className="space-y-1.5">
-                          {campaign.google[s].map((aud) => (
-                            <button
-                              key={aud.id}
-                              onClick={() => setSelectedAudienceId(aud.id)}
-                              className="w-full flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-emerald-400 hover:shadow-sm transition-all text-left group"
-                            >
-                              <span className="truncate">{aud.title}</span>
-                              <ChevronRight className="w-3 h-3 text-slate-300 group-hover:text-emerald-500 transition-colors" />
-                            </button>
+                          {campaign.google[s].map((aud, audIdx) => (
+                            <div key={aud.id} className="group/aud-row flex items-center gap-1">
+                              <div className="flex flex-col gap-0 opacity-0 group-hover/aud-row:opacity-100 transition-opacity shrink-0">
+                                <button
+                                  onClick={() => reorderAudience(aud.id, "google", s, "up")}
+                                  disabled={audIdx === 0}
+                                  className="p-0.5 rounded text-slate-300 hover:text-emerald-500 disabled:opacity-20 transition-colors"
+                                  title="Mover para cima"
+                                >
+                                  <ChevronUp className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() => reorderAudience(aud.id, "google", s, "down")}
+                                  disabled={audIdx === campaign.google[s].length - 1}
+                                  className="p-0.5 rounded text-slate-300 hover:text-emerald-500 disabled:opacity-20 transition-colors"
+                                  title="Mover para baixo"
+                                >
+                                  <ChevronDown className="w-3 h-3" />
+                                </button>
+                              </div>
+                              <button
+                                onClick={() => setSelectedAudienceId(aud.id)}
+                                className="flex-1 flex items-center justify-between p-3 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:border-emerald-400 hover:shadow-sm transition-all text-left group/btn"
+                              >
+                                <span className="truncate">{aud.title}</span>
+                                <ChevronRight className="w-3 h-3 text-slate-300 group-hover/btn:text-emerald-500 transition-colors" />
+                              </button>
+                            </div>
                           ))}
                           <button
                             onClick={() => {
@@ -2102,13 +2278,59 @@ export function StrategyEditor() {
                               setGoogleAudiences(s, [...campaign.google[s], newAud]);
                               setSelectedAudienceId(newAud.id);
                             }}
-                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-emerald-200 hover:text-emerald-500 hover:bg-white transition-all"
+                            className="w-full p-3 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-emerald-200 hover:text-emerald-500 hover:bg-white transition-all mb-2"
                           >
                             + Adicionar Público
+                          </button>
+                          <button
+                            onClick={() => setLibraryModal({ channel: "google", stage: s })}
+                            className="w-full p-2 border border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 hover:border-amber-200 hover:text-amber-500 hover:bg-white transition-all flex items-center justify-center gap-1.5"
+                          >
+                            <Library className="w-3 h-3" />
+                            Biblioteca
                           </button>
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-bold text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                        <LinkIcon className="w-4 h-4 text-emerald-600" />
+                        Sitelinks da Campanha (Globais)
+                      </h4>
+                    </div>
+                    <p className="text-xs text-slate-500 mb-6">
+                      Estes links aparecerão em todos os anúncios de Pesquisa e Performance Max desta campanha.
+                    </p>
+                    <SitelinkListEditor
+                      sitelinks={campaign.google.sitelinks ?? []}
+                      onChange={(updated) => setCampaign({
+                        ...campaign,
+                        google: { ...campaign.google, sitelinks: updated }
+                      } as Campaign)}
+                    />
+
+                    <div className="h-px bg-slate-100 my-8" />
+
+                    <StructuredSnippetEditor
+                      snippets={campaign.google.structuredSnippets ?? []}
+                      onChange={(updated) => setCampaign({
+                        ...campaign,
+                        google: { ...campaign.google, structuredSnippets: updated }
+                      } as Campaign)}
+                    />
+
+                    <div className="h-px bg-slate-100 my-8" />
+
+                    <CallExtensionEditor
+                      extension={campaign.google.callExtension}
+                      onChange={(updated) => setCampaign({
+                        ...campaign,
+                        google: { ...campaign.google, callExtension: updated }
+                      } as Campaign)}
+                    />
                   </div>
 
                   <div className="flex justify-center">
@@ -2233,7 +2455,7 @@ export function StrategyEditor() {
             savedAudiences={savedAudiences}
             onPick={(audience) => {
               const channel = libraryModal.channel;
-              const targetStage = activeStage; // Or some default logic
+              const targetStage = libraryModal.stage || activeStage;
               if (channel === "meta") {
                 setMetaAudiences(targetStage, [
                   ...campaign.meta[targetStage],

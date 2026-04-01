@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Outlet, Link, useLocation, useParams } from "react-router";
+import { useState, useEffect, useMemo } from "react";
+import { Outlet, Link, useLocation, useParams, useNavigate } from "react-router";
 import { BarChart2, TrendingUp, ChevronRight, ShieldCheck, LayoutDashboard, Megaphone, ChevronDown, Menu } from "lucide-react";
 import { MetaIcon, GoogleIcon } from "./BrandIcons";
 import { motion, AnimatePresence } from "motion/react";
@@ -46,14 +46,36 @@ const navItems: NavItem[] = [
 
 export function Layout() {
   const { campaignId } = useParams();
-  const { logout } = useStore();
+  const { logout, getCampaign, getActiveCampaign } = useStore();
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const campaign = useMemo(() => {
+    if (campaignId) return getCampaign(campaignId);
+    return getActiveCampaign();
+  }, [campaignId, getCampaign, getActiveCampaign]);
+
+  // Redirection: if we are at root level routes without campaign identification
+  useEffect(() => {
+    const isGenericRoute = ["/meta-ads", "/google-ads"].includes(location.pathname);
+    const isRoot = location.pathname === "/";
+    
+    if ((isGenericRoute || isRoot) && !campaignId) {
+      const active = getActiveCampaign();
+      if (active) {
+        const identifier = active.slug || active.id;
+        const targetPath = isRoot ? `/${identifier}` : `/${identifier}${location.pathname}`;
+        navigate(targetPath, { replace: true });
+      }
+    }
+  }, [location.pathname, campaignId, getActiveCampaign, navigate]);
   
   const getNavPath = (path?: string) => {
     if (!path) return undefined;
-    if (!campaignId) return path;
+    const identifier = campaign?.slug || campaign?.id || campaignId;
+    if (!identifier) return path;
     const base = path === "/" ? "" : path;
-    return `/share/${campaignId}${base}`;
+    return `/${identifier}${base}`;
   };
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -91,8 +113,12 @@ export function Layout() {
             <BarChart2 className="w-4 h-4 text-white" />
           </div>
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest leading-none mb-0.5">Apresentação</p>
-            <p className="text-sm text-gray-800 leading-tight" style={{ fontWeight: 600 }}>Mídia Paga 2025</p>
+            <p className="text-xs text-gray-400 uppercase tracking-widest leading-none mb-0.5">
+              {campaign?.name ? "Estratégia" : "Apresentação"}
+            </p>
+            <p className="text-sm text-gray-800 leading-tight truncate max-w-[140px]" style={{ fontWeight: 600 }}>
+              {campaign?.name || "Mídia Paga 2025"}
+            </p>
           </div>
         </div>
       </div>
@@ -207,25 +233,21 @@ export function Layout() {
         </div>
         
         <div className="flex flex-col gap-2 mt-3">
-          {!campaignId && (
-            <Link 
-              to="/admin" 
+          <Link 
+            to="/admin" 
               className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
             >
               <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
               Acesso Restrito Admin
             </Link>
-          )}
 
-          {!campaignId && (
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
-            >
-              <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
-              Encerrar Sessão
-            </button>
-          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
+          >
+            <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
+            Encerrar Sessão
+          </button>
         </div>
       </div>
     </>
@@ -267,7 +289,9 @@ export function Layout() {
               </Button>
             )}
             <div className="flex items-center gap-2 overflow-hidden">
-              <span className="text-xs text-gray-400 uppercase tracking-wide">Apresentação</span>
+              <span className="text-xs text-gray-400 uppercase tracking-wide">
+                {campaign?.name ? campaign.name : "Apresentação"}
+              </span>
               <ChevronRight className="w-3 h-3 text-gray-300" />
               {navItems.map((item) => {
                 if (item.path === location.pathname) {
@@ -288,8 +312,8 @@ export function Layout() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-full">
-              Confidencial · Cliente
+            <span className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full font-medium">
+              {campaign?.name ? `Campanha: ${campaign.name}` : "Confidencial · Cliente"}
             </span>
           </div>
         </header>

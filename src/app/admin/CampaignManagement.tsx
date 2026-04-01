@@ -23,6 +23,7 @@ import { useNavigate } from "react-router";
 import { useStore } from "../data/store";
 import type { Campaign, Client } from "../data/types";
 import { generateStrategy, getGeminiKey } from "../lib/aiStrategy";
+import { slugify } from "../utils/slug";
 
 // ─── Status map ───────────────────────────────────────────────────────────────
 
@@ -221,6 +222,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
     new Date().toISOString().slice(0, 10)
   );
   const [endDate, setEndDate] = useState("");
+  const [slug, setSlug] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Manual-only
@@ -230,6 +232,13 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
   // AI-only
   const [instructions, setInstructions] = useState("");
   const [aiError, setAiError] = useState("");
+
+  const handleNameChange = (val: string) => {
+    setName(val);
+    if (!slug || slug === slugify(name)) {
+      setSlug(slugify(val));
+    }
+  };
 
   const validateBase = () => {
     const e: Record<string, string> = {};
@@ -253,7 +262,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
     if (Object.keys(e).length > 0) return;
 
     const base = emptyCampaign(clientId);
-    onSave({ ...base, name: name.trim(), budget: Number(budget), startDate, endDate, status });
+    onSave({ ...base, name: name.trim(), slug: slug.trim(), budget: Number(budget), startDate, endDate, status });
   };
 
   // ── AI submit ─────────────────────────────────────────────────────────────
@@ -285,7 +294,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
         apiKey,
       });
 
-      onSave({ ...result, clientId, status: "planning" });
+      onSave({ ...result, clientId, slug: slug.trim() || slugify(result.name), status: "planning" });
     } catch (err) {
       setAiError(
         err instanceof Error
@@ -387,12 +396,31 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
                   type="text"
                   value={name}
                   placeholder="Ex: Lançamento Produto Q2"
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => handleNameChange(e.target.value)}
                   className={`w-full px-4 py-2.5 bg-slate-50 border rounded-xl text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 ${
                     errors.name ? "border-red-300" : "border-slate-200"
                   }`}
                 />
                 {errors.name && <p className="text-xs text-red-500">{errors.name}</p>}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                  Identificador na URL (Slug)
+                </label>
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-100/50 border border-slate-200 rounded-xl">
+                  <span className="text-xs text-slate-400 font-mono">dashboard/</span>
+                  <input
+                    type="text"
+                    value={slug}
+                    placeholder="nome-da-campanha"
+                    onChange={(e) => setSlug(slugify(e.target.value))}
+                    className="flex-1 bg-transparent border-none p-0 text-sm font-mono text-blue-600 focus:ring-0 placeholder:text-slate-300"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-400">
+                  Este será o endereço acessível pelo cliente. Use apenas letras, números e hifens.
+                </p>
               </div>
 
               <BudgetAndDates
@@ -797,7 +825,12 @@ export function CampaignManagement() {
                   <h3 className="text-lg text-slate-900 font-bold leading-tight mb-1 truncate group-hover:text-blue-600 transition-colors">
                     {camp.name}
                   </h3>
-                  <p className="text-sm text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-400 font-mono">
+                      /{camp.slug || camp.id}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-500 mt-1">
                     {getClientName(camp.clientId)}
                   </p>
                 </div>

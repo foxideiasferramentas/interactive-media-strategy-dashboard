@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { X, FileText, Pencil, Check, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, Globe, ExternalLink, Trash2, Plus } from "lucide-react";
+import { X, FileText, Pencil, Check, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, Globe, ExternalLink, Trash2, Plus, Phone, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import type { Creative } from "./CreativeModal";
 import type { MetaCarouselCard, MetaCreative } from "../data/types";
@@ -7,6 +7,8 @@ import { getYouTubeId } from "../utils/youtube";
 import { normalizeMediaUrl, isDirectVideoUrl } from "../utils/media";
 export { PMAX_TABS } from "./creative/Previews";
 import { formatDisplayUrl, PMAX_TABS, type PMaxTabId as PMaxTab } from "./creative/Previews";
+export type { PMaxTabId as PMaxTab } from "./creative/Previews";
+import { type Sitelink, type StructuredSnippet, type CallExtension } from "../data/types";
 
 interface CreativeCardProps {
   creative: Creative;
@@ -17,6 +19,9 @@ interface CreativeCardProps {
   companyLogo?: string;
   forcedPMaxTab?: PMaxTab;
   initialOffset?: number;
+  globalSitelinks?: Sitelink[];
+  globalSnippets?: StructuredSnippet[];
+  globalCall?: CallExtension;
 }
 
 const CARD_SLOT = 3;
@@ -105,7 +110,7 @@ const VideoThumb = React.memo(({ videoId, isShort, rawUrl, logoUrl, company, mut
   );
 });
 
-export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", companyName, companyUrl, companyLogo, forcedPMaxTab, initialOffset = 0 }: CreativeCardProps) {
+export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", companyName, companyUrl, companyLogo, forcedPMaxTab, initialOffset = 0, globalSitelinks, globalSnippets, globalCall }: CreativeCardProps) {
   const isMeta = creative.format === "Image" || creative.format === "Video" || creative.format === "Carousel";
   const isSearchAd = creative.format.includes("Search") || creative.format.includes("Busca");
   const isPMax = creative.format.includes("Performance Max") || creative.format.includes("PMax");
@@ -123,6 +128,25 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
   const [metaPlacement, setMetaPlacement] = useState<MetaPlacement>(
     (meta.primaryPlacement?.toLowerCase() as MetaPlacement) ?? "feed"
   );
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Auto-play para Reels (Imagens/Carrossel)
+  useEffect(() => {
+    if (metaPlacement === "reels" && isMeta) {
+      const isCarousel = creative.format === "Carousel";
+      const total = isCarousel ? (creative as any).carouselCards?.length || 0 : metaImages.length;
+      if (total > 1) {
+        const timer = setInterval(() => {
+          if (isCarousel) {
+            setCarouselIdx((i) => (i + 1) % total);
+          } else {
+            setMetaImgIdx((i) => (i + 1) % total);
+          }
+        }, 5000);
+        return () => clearInterval(timer);
+      }
+    }
+  }, [metaPlacement, isMeta, creative, metaImages.length]);
 
   // ── Shared rotation state ────────────────────────────────────────────
   const DURATION = isSearchAd ? 4000 : 5000; // ms per slide
@@ -234,7 +258,7 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
   const pmaxFocal   = creative.imageFocalPoints?.[pmaxImgRaw] ?? { x: 50, y: 50 };
   const pmaxLH      = pmaxLongH[headlineIdx % Math.max(pmaxLongH.length, 1)];
   const pmaxBody    = pmaxBodies[headlineIdx % Math.max(pmaxBodies.length, 1)];
-  const pmaxLogoUrl  = normalizeMediaUrl(creative.logos?.[0]);
+  const pmaxLogoUrl  = normalizeMediaUrl(creative.logos?.[0] || companyLogo);
   const pmaxVideos   = creative.videos ?? [];
   const pmaxVideoUrl = pmaxVideos[n % Math.max(pmaxVideos.length, 1)];
   const pmaxVideoId  = getYouTubeId(pmaxVideoUrl);
@@ -382,6 +406,42 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                     {Array.from({ length: Math.min(3, pmaxHeadlines.length) }, (_, i) => pmaxHeadlines[(n + i) % pmaxHeadlines.length]).join(" · ")}
                   </p>
                   <p className="text-xs text-gray-500 leading-relaxed">{pmaxBody}</p>
+
+                  {/* Sitelinks (Globais) */}
+                  {globalSitelinks && globalSitelinks.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 pt-2 border-t border-gray-50">
+                      {globalSitelinks.slice(0, 4).map((sl) => (
+                        <div key={sl.id} className="min-w-0">
+                          <p className="text-[11px] text-blue-700 font-medium truncate">{sl.title}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Structured Snippets (Globais) */}
+                  {globalSnippets && globalSnippets.some(s => s.values.some(v => v.trim())) && (
+                    <div className="mt-1.5 text-[10px] text-gray-400 line-clamp-1">
+                      {globalSnippets.map((s, idx) => {
+                        const validValues = s.values.filter(v => v.trim());
+                        if (validValues.length === 0) return null;
+                        return (
+                          <span key={s.id}>
+                            {idx > 0 && " • "}
+                            <strong className="font-semibold">{s.header}: </strong>
+                            {validValues.join(", ")}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Call Extension (Global) */}
+                  {globalCall?.phone && (
+                    <div className="mt-1.5 flex items-center gap-1 text-blue-700">
+                      <Phone className="w-2.5 h-2.5" />
+                      <span className="text-[11px] font-medium">{globalCall.phone}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -455,6 +515,20 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
                       <p className="text-sm font-bold text-gray-900 leading-snug">{pmaxLH}</p>
                       <p className="text-xs text-gray-400 mt-0.5">Patrocinado · {displayCompany}</p>
                       <p className="text-xs text-blue-600 font-medium mt-0.5">{pmaxBody}</p>
+
+                      {/* Sitelinks (Globais) no Discovery */}
+                      {globalSitelinks && globalSitelinks.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 pt-2 border-t border-gray-100">
+                          {globalSitelinks.slice(0, 2).map((sl) => (
+                            <span
+                              key={sl.id}
+                              className="text-[11px] text-blue-600 font-medium underline"
+                            >
+                              {sl.title}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -463,15 +537,28 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {/* YouTube */}
               {pmaxTab === "youtube" && (
                 <div className="overflow-hidden">
-                  <VideoThumb
-                  videoId={pmaxVideoId}
-                  isShort={pmaxIsShort}
-                  rawUrl={pmaxVideoUrl}
-                  logoUrl={pmaxLogoUrl}
-                  company={displayCompany}
-                  muted={thumbMuted}
-                  onMuteToggle={setThumbMuted}
-                />
+                   <VideoThumb
+                    videoId={pmaxVideoId}
+                    isShort={pmaxIsShort}
+                    rawUrl={pmaxVideoUrl}
+                    logoUrl={pmaxLogoUrl}
+                    company={displayCompany}
+                    muted={thumbMuted}
+                    onMuteToggle={setThumbMuted}
+                  />
+
+                  {/* Sitelinks (Globais) no YouTube */}
+                  {globalSitelinks && globalSitelinks.length > 0 && (
+                    <div className="bg-white px-4 py-2 flex gap-4 overflow-x-auto no-scrollbar border-t border-gray-100">
+                      {globalSitelinks.slice(0, 4).map((sl) => (
+                        <div key={sl.id} className="shrink-0">
+                          <p className="text-[11px] text-blue-600 font-medium whitespace-nowrap">
+                            {sl.title}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -493,103 +580,61 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
 
   // ── Meta Ads Preview ───────────────────────────────────────────────────────
   if (isMeta) {
+    const metaImages = creative.images || [];
+    const metaVideos = creative.videos || [];
     const isCarousel = creative.format === "Carousel";
+    const totalItems = isCarousel ? carouselCards.length : (metaImages.length || 1);
+    
+    // Media detection
+    const currentImgUrl = isCarousel 
+      ? carouselCards[carouselIdx]?.imageUrl 
+      : metaImages[metaImgIdx] || creative.image || "";
+
+    const activeUrl = metaVideos.find(v => isDirectVideoUrl(v) || !!getYouTubeId(v)) 
+      ?? metaVideos[0] 
+      ?? currentImgUrl;
+
+    const normalized = normalizeMediaUrl(activeUrl || "");
+    const ytId = getYouTubeId(activeUrl || "");
+    const isDirect = isDirectVideoUrl(activeUrl || "");
+    const isReels = metaPlacement === "reels";
     const currentCard = isCarousel ? carouselCards[carouselIdx] : null;
-    const currentImgUrl = isCarousel
-      ? (currentCard?.imageUrl || "")
-      : (metaImages[metaImgIdx] || "");
-    const isVideo = creative.format === "Video";
 
-    const prevImg = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setMetaImgIdx((i) => (i - 1 + metaImages.length) % metaImages.length);
-    };
-    const nextImg = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setMetaImgIdx((i) => (i + 1) % metaImages.length);
-    };
-    const prevCard = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setCarouselIdx((i) => (i - 1 + carouselCards.length) % carouselCards.length);
-    };
-    const nextCard = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      setCarouselIdx((i) => (i + 1) % carouselCards.length);
-    };
+    const [mediaMuted, setMediaMuted] = useState(true);
+    const [imgLoaded, setImgLoaded] = useState(false);
 
-    // Shared media area used across placements
-    const MediaNav = () => (
-      <>
-        {isCarousel && carouselCards.length > 1 && (
-          <>
-            <button onClick={prevCard} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-gray-700 opacity-0 group-hover:opacity-100 transition-all z-10">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={nextCard} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-gray-700 opacity-0 group-hover:opacity-100 transition-all z-10">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-              {carouselCards.map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${carouselIdx === i ? "bg-white scale-110" : "bg-white/50"}`} />
-              ))}
-            </div>
-          </>
-        )}
-        {!isCarousel && metaImages.length > 1 && (
-          <>
-            <button onClick={prevImg} className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-gray-700 opacity-0 group-hover:opacity-100 transition-all z-10">
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button onClick={nextImg} className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-white/90 shadow-lg flex items-center justify-center text-gray-700 opacity-0 group-hover:opacity-100 transition-all z-10">
-              <ChevronRight className="w-4 h-4" />
-            </button>
-            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-              {metaImages.map((_, i) => (
-                <div key={i} className={`w-1.5 h-1.5 rounded-full transition-all ${metaImgIdx === i ? "bg-white scale-110" : "bg-white/50"}`} />
-              ))}
-            </div>
-          </>
-        )}
-        {isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-            <div className="w-10 h-10 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
-              <div className="w-0 h-0 border-t-[6px] border-t-transparent border-l-[11px] border-l-white border-b-[6px] border-b-transparent ml-0.5" />
-            </div>
+    useEffect(() => { setImgLoaded(false); }, [normalized, metaPlacement]);
+
+    const renderMediaContent = () => {
+      // YouTube
+      if (ytId) {
+        return (
+          <div className="relative w-full h-full bg-black">
+            <VideoThumb 
+              videoId={ytId} 
+              isShort={metaPlacement === "stories" || metaPlacement === "reels"}
+              rawUrl={activeUrl || undefined}
+              logoUrl={companyLogo || undefined}
+              company={displayCompany}
+              muted={mediaMuted}
+              onMuteToggle={setMediaMuted}
+            />
           </div>
-        )}
-      </>
-    );
+        );
+      }
 
-    const MediaContent = ({ className }: { className?: string }) => {
-      const [mediaMuted, setMediaMuted] = useState(true);
-      const [imgLoaded, setImgLoaded] = useState(false);
-
-      // Busca a melhor URL de vídeo de todas as fontes, independente do formato declarado
-      const rawVideoUrl =
-        creative.videos?.find(isDirectVideoUrl) ??
-        creative.videos?.[0] ??
-        (isDirectVideoUrl(currentImgUrl) ? currentImgUrl : null) ??
-        null;
-
-      const normalized = rawVideoUrl
-        ? normalizeMediaUrl(rawVideoUrl)
-        : normalizeMediaUrl(currentImgUrl);
-
-      // Reset skeleton quando a fonte muda
-      useEffect(() => { setImgLoaded(false); }, [normalized]);
-
-      if (rawVideoUrl && normalized) {
+      // Direct Video
+      if (isDirect && normalized) {
         return (
           <div className="relative w-full h-full bg-black flex items-center justify-center">
             <video
               src={normalized}
-              className={`w-full h-full object-cover bg-black/10 ${className ?? ""}`}
+              className="w-full h-full object-cover bg-black/10"
               muted={mediaMuted}
               playsInline
               loop
               autoPlay
               preload="metadata"
-              crossOrigin="anonymous"
             />
             <button
               onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}
@@ -601,134 +646,156 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         );
       }
 
+      // Image with Sliding Transition
       return (
-        <>
-          {!imgLoaded && (
-            <div className="absolute inset-0 bg-gray-100 animate-pulse" style={{ zIndex: 1 }} />
+        <div className="relative w-full h-full overflow-hidden bg-black">
+          {!imgLoaded && !isReels && (
+            <div className="absolute inset-0 bg-slate-900/10" style={{ zIndex: 1 }} />
           )}
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={isCarousel ? (currentCard?.id || carouselIdx) : `${creative.id}-${metaImgIdx}`}
-              src={normalized}
-              loading="lazy"
-              alt=""
-              initial={{ opacity: 0 }}
-              animate={{ opacity: imgLoaded ? 1 : 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className={`w-full h-full object-cover ${className ?? ""}`}
-              style={{ position: "relative", zIndex: 2 }}
-              onLoad={() => setImgLoaded(true)}
-              onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; setImgLoaded(true); }}
-            />
+          <AnimatePresence initial={false}>
+            <motion.div
+              key={`${metaPlacement}-${isCarousel ? (currentCard?.id || carouselIdx) : metaImgIdx}`}
+              initial={isReels ? { x: "100%", opacity: 1 } : { opacity: 0 }}
+              animate={isReels ? { x: 0, opacity: 1 } : { x: 0, opacity: imgLoaded ? 1 : 0 }}
+              exit={isReels ? { x: "-100%", opacity: 1 } : { opacity: 0 }}
+              transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+              className="absolute inset-0 w-full h-full overflow-hidden"
+            >
+              <img
+                src={normalized}
+                alt=""
+                loading="lazy"
+                className={`w-full h-full object-cover ${isReels ? "animate-ken-burns" : ""}`}
+                onLoad={() => setImgLoaded(true)}
+                style={creative.imageFocalPoints?.[currentImgUrl] ? {
+                  objectPosition: `${creative.imageFocalPoints[currentImgUrl].x}% ${creative.imageFocalPoints[currentImgUrl].y}%`
+                } : undefined}
+                onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; setImgLoaded(true); }}
+              />
+            </motion.div>
           </AnimatePresence>
-        </>
+        </div>
       );
     };
 
-    // ── Feed layout ─────────────────────────────────────────────────
-    const FeedPreview = () => (
+    const MediaNav = () => (totalItems > 1 && metaPlacement !== "reels") ? (
+      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 flex justify-between px-2 pointer-events-none z-10 transition-opacity opacity-0 group-hover:opacity-100">
+        <button 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            if (isCarousel) {
+              setCarouselIdx((i) => (i - 1 + totalItems) % totalItems);
+            } else {
+              setMetaImgIdx((i) => (i - 1 + totalItems) % totalItems);
+            }
+          }}
+          className="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center pointer-events-auto hover:bg-white transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4 text-gray-700" />
+        </button>
+        <button 
+          onClick={(e) => { 
+            e.stopPropagation(); 
+            if (isCarousel) {
+              setCarouselIdx((i) => (i + 1) % totalItems);
+            } else {
+              setMetaImgIdx((i) => (i + 1) % totalItems);
+            }
+          }}
+          className="w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center pointer-events-auto hover:bg-white transition-colors"
+        >
+          <ChevronRight className="w-4 h-4 text-gray-700" />
+        </button>
+      </div>
+    ) : null;
+
+    const renderFeedPreview = () => (
       <div className="flex flex-col">
-        {/* Header */}
         <div className="flex items-center justify-between px-3 py-2.5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center shrink-0 relative">
               <Globe className="w-4 h-4 text-slate-300 pointer-events-none" />
-              {companyLogo && (
-                <img
-                  src={normalizeMediaUrl(companyLogo)}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-                />
-              )}
+              {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
             </div>
-            <div>
-              <p className="text-sm font-bold text-gray-900 leading-none">{displayCompany}</p>
-              <p className="text-xs text-gray-400 mt-0.5">Patrocinado · <span className="text-gray-300">🌐</span></p>
+            <div className="flex flex-col">
+              <span className="text-[12px] font-bold text-gray-900 leading-none mb-0.5">{displayCompany}</span>
+              <span className="text-[10px] text-gray-500 leading-none">Patrocinado</span>
             </div>
           </div>
-          <div className="flex gap-[3px]">
-            <div className="w-[3px] h-[3px] rounded-full bg-gray-300" />
-            <div className="w-[3px] h-[3px] rounded-full bg-gray-300" />
-            <div className="w-[3px] h-[3px] rounded-full bg-gray-300" />
-          </div>
+          <MoreHorizontal className="w-4 h-4 text-gray-400" />
         </div>
-        {/* Copy */}
         <div className="px-3 pb-2">
-          <p className="text-sm text-gray-800 leading-relaxed line-clamp-2">{meta.primaryText || creative.body}</p>
+          <p className="text-[11px] text-gray-800 leading-relaxed whitespace-pre-wrap">
+            {isExpanded || (meta.primaryText || creative.body || "").length <= 95 
+              ? (meta.primaryText || creative.body) 
+              : `${(meta.primaryText || creative.body || "").trimEnd().substring(0, 92)}...`}
+            {!isExpanded && (meta.primaryText || creative.body || "").length > 95 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsExpanded(true); }} 
+                className="ml-0.5 text-gray-500 font-semibold hover:text-gray-700 hover:underline text-[11px]"
+              >
+                Ver mais
+              </button>
+            )}
+          </p>
         </div>
-        {/* Media — 4:5 for feed */}
         <div className="relative overflow-hidden bg-slate-100 group" style={{ aspectRatio: "4 / 5" }}>
-          <MediaContent />
+          {renderMediaContent()}
           <MediaNav />
         </div>
-        {/* CTA bar */}
         <div className="px-3 py-2.5 bg-slate-50 border-t border-gray-100 flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className="text-[10px] text-gray-400 uppercase tracking-tight truncate">{meta.displayLink || formatDisplayUrl(companyUrl)}</p>
-            <p className="text-sm font-bold text-gray-900 leading-snug truncate">
-              {(isCarousel ? currentCard?.headline : meta.headline) || creative.headline}
+            <p className="text-[9px] text-gray-400 uppercase tracking-tight truncate">{creative.displayLink || "www.site.com"}</p>
+            <p className="text-[12px] font-bold text-gray-900 leading-snug truncate">
+              {(isCarousel ? currentCard?.headline : creative.headline) || creative.headline}
             </p>
           </div>
           <div className="px-3 py-1.5 bg-gray-200 rounded-md shrink-0">
-            <span className="text-xs font-bold text-gray-700">{meta.cta}</span>
+            <span className="text-[11px] font-bold text-gray-700">{creative.cta}</span>
           </div>
         </div>
       </div>
     );
 
-    // ── Stories layout ───────────────────────────────────────────────
-    const StoriesPreview = () => (
+    const renderStoriesPreview = () => (
       <div className="relative overflow-hidden bg-black group" style={{ aspectRatio: "9 / 16" }}>
-        <MediaContent />
+        {renderMediaContent()}
         <MediaNav />
-        {/* Top bar */}
         <div className="absolute top-0 inset-x-0 p-3 bg-gradient-to-b from-black/60 to-transparent z-20 pointer-events-none">
           <div className="flex gap-1 mb-2">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex-1 h-[2px] rounded-full bg-white/40" />
+            {Array.from({ length: totalItems }).map((_, i) => (
+              <div 
+                key={i} 
+                className={`flex-1 h-[2px] rounded-full transition-colors ${i <= (isCarousel ? carouselIdx : metaImgIdx) ? "bg-white" : "bg-white/40"}`} 
+              />
             ))}
           </div>
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
-              <Globe className="w-3.5 h-3.5 text-white/40 pointer-events-none" />
-              {companyLogo && (
-                <img
-                  src={normalizeMediaUrl(companyLogo)}
-                  alt=""
-                  loading="lazy"
-                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-                />
-              )}
+              <Globe className="w-3.5 h-3.5 text-white/40" />
+              {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
             </div>
             <div>
-              <p className="text-sm font-bold text-white leading-none">{displayCompany}</p>
-              <p className="text-xs text-white/60 mt-0.5">Patrocinado</p>
+              <p className="text-[11px] font-bold text-white leading-none">{displayCompany}</p>
+              <p className="text-[9px] text-white/60 mt-0.5">Patrocinado</p>
             </div>
           </div>
         </div>
-        {/* Bottom CTA */}
         <div className="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black/70 to-transparent z-20 pointer-events-none flex flex-col items-center gap-2">
-          <p className="text-sm text-white font-semibold text-center line-clamp-2 drop-shadow">
-            {meta.headline || creative.headline}
+          <p className="text-[11px] text-white font-semibold text-center line-clamp-2 drop-shadow">
+            {isCarousel ? currentCard?.headline : creative.headline}
           </p>
           <div className="flex flex-col items-center gap-1">
             <div className="w-px h-3 bg-white/60" />
-            <p className="text-xs text-white font-bold uppercase tracking-wide">{meta.cta}</p>
+            <p className="text-[10px] text-white font-bold uppercase tracking-wide">{creative.cta}</p>
           </div>
         </div>
       </div>
     );
 
-    // ── Reels layout ─────────────────────────────────────────────────
-    const ReelsPreview = () => (
+    const renderReelsPreview = () => (
       <div className="relative overflow-hidden bg-black group" style={{ aspectRatio: "9 / 16" }}>
-        <MediaContent />
-        <MediaNav />
-        {/* Right actions */}
+        {renderMediaContent()}
         <div className="absolute right-2 bottom-20 flex flex-col items-center gap-4 z-20 pointer-events-none">
           {["♥", "💬", "↗"].map((icon, i) => (
             <div key={i} className="flex flex-col items-center gap-0.5">
@@ -738,31 +805,22 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
             </div>
           ))}
         </div>
-        {/* Bottom overlay */}
         <div className="absolute bottom-0 inset-x-0 px-3 pb-4 pt-8 bg-gradient-to-t from-black/80 via-black/30 to-transparent z-20 pointer-events-none">
           <div className="flex items-end justify-between gap-2">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 mb-1">
-                <div className="w-5 h-5 rounded-full bg-white/20 border border-white/30 overflow-hidden flex items-center justify-center shrink-0 relative">
-                  <Globe className="w-2.5 h-2.5 text-white/40" />
-                  {companyLogo && (
-                    <img
-                      src={normalizeMediaUrl(companyLogo)}
-                      alt=""
-                      className="absolute inset-0 w-full h-full object-cover transition-opacity duration-300"
-                      onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; }}
-                    />
-                  )}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 rounded-full bg-white/20 border border-white/30 overflow-hidden shrink-0 relative">
+                  {companyLogo && <img src={normalizeMediaUrl(companyLogo)} loading="lazy" className="absolute inset-0 w-full h-full object-cover" alt="" />}
                 </div>
-                <span className="text-xs font-bold text-white">{displayCompany}</span>
-                <span className="text-xs text-white/50">· Patrocinado</span>
+                <span className="text-white text-[11px] font-bold shadow-sm">{displayCompany}</span>
+                <span className="px-1.5 py-0.5 rounded border border-white/40 text-white text-[8px] font-bold">Patrocinado</span>
               </div>
-              <p className="text-sm text-white line-clamp-2 leading-snug">{meta.primaryText || creative.body}</p>
+              <p className="text-white text-[11px] line-clamp-2 drop-shadow shadow-black">
+                {isCarousel ? currentCard?.headline : creative.headline}
+              </p>
             </div>
-          </div>
-          <div className="mt-2.5 flex justify-center">
-            <div className="px-5 py-1.5 bg-white/15 border border-white/30 backdrop-blur-sm rounded-full">
-              <span className="text-sm font-bold text-white">{meta.cta}</span>
+            <div className="px-3 py-1.5 bg-white rounded-md shrink-0">
+              <span className="text-[10px] font-bold text-gray-900">{creative.cta}</span>
             </div>
           </div>
         </div>
@@ -774,7 +832,6 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
         onClick={onClick}
         className="bg-white rounded-2xl border border-gray-200 overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:border-gray-300 group flex flex-col shadow-sm"
       >
-        {/* Placement tabs */}
         <div className="px-3 pt-3 pb-2">
           <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5">
             {metaPlacements.map((p) => (
@@ -793,7 +850,6 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
           </div>
         </div>
 
-        {/* Placement preview */}
         <AnimatePresence mode="wait">
           <motion.div
             key={metaPlacement}
@@ -802,9 +858,9 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.18 }}
           >
-            {metaPlacement === "feed" && <FeedPreview />}
-            {metaPlacement === "stories" && <StoriesPreview />}
-            {metaPlacement === "reels" && <ReelsPreview />}
+            {metaPlacement === "feed" && renderFeedPreview()}
+            {metaPlacement === "stories" && renderStoriesPreview()}
+            {metaPlacement === "reels" && renderReelsPreview()}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -881,6 +937,44 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {displayBody}
             </motion.p>
           </AnimatePresence>
+
+          {/* Sitelinks: Prioritize globalSitelinks, fallback to creative.sitelinks */}
+          {((globalSitelinks && globalSitelinks.length > 0) || (creative.sitelinks && creative.sitelinks.length > 0)) && (
+            <div className="mt-3 grid grid-cols-2 gap-2 pb-1 relative z-10">
+              {(globalSitelinks && globalSitelinks.length > 0 ? globalSitelinks : (creative.sitelinks || [])).slice(0, 4).map((sl) => (
+                <div key={sl.id} className="min-w-0">
+                  <p className="text-[13px] text-blue-700 font-medium hover:underline cursor-pointer truncate">{sl.title}</p>
+                  <p className="text-[11px] text-gray-500 line-clamp-1 leading-tight">{sl.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Structured Snippets (Global) */}
+          {globalSnippets && globalSnippets.some(s => s.values.some(v => v.trim())) && (
+            <div className="mt-2 text-[11px] text-gray-500 line-clamp-1 pb-1 relative z-10">
+              {globalSnippets.map((s, idx) => {
+                const validValues = s.values.filter(v => v.trim());
+                if (validValues.length === 0) return null;
+                return (
+                  <span key={s.id}>
+                    {idx > 0 && " • "}
+                    <strong className="font-semibold text-gray-600">{s.header}: </strong>
+                    {validValues.join(", ")}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Call Extension (Global) */}
+          {globalCall?.phone && (
+            <div className="mt-2 flex items-center gap-1.5 text-blue-700 font-medium pb-1 relative z-10">
+              <Phone className="w-3 h-3" />
+              <span className="text-[12px]">{globalCall.phone}</span>
+            </div>
+          )}
+
           <div className="absolute inset-0 bg-slate-50/0 group-hover:bg-slate-50/60 transition-colors duration-300 rounded-2xl pointer-events-none" />
         </div>
       ) : (

@@ -40,18 +40,21 @@ export function Settings() {
   } = useStore();
 
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Gemini API key + model state
   const [geminiKey, setGeminiKey] = useState(getGeminiKey);
   const [geminiModel, setGeminiModel] = useState(getGeminiModel);
   const [showKey, setShowKey] = useState(false);
   const [keySaved, setKeySaved] = useState(false);
+  const keySavedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleSaveKey = () => {
     saveGeminiKey(geminiKey.trim());
     saveGeminiModel(geminiModel);
     setKeySaved(true);
-    setTimeout(() => setKeySaved(false), 2000);
+    if (keySavedTimerRef.current) clearTimeout(keySavedTimerRef.current);
+    keySavedTimerRef.current = setTimeout(() => setKeySaved(false), 2000);
   };
 
   const activeCampaign = getActiveCampaign();
@@ -61,7 +64,8 @@ export function Settings() {
   const handleSetActive = (id: string) => {
     setActiveCampaignId(id);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   };
 
 
