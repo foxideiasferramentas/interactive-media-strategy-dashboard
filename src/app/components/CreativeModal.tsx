@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { X, FileText, Pencil, Check, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX, Globe, Trash2, Plus } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { getYouTubeId } from "../utils/youtube";
-import { normalizeMediaUrl, isDirectVideoUrl } from "../utils/media";
+import { normalizeMediaUrl, isDirectVideoUrl, loadedMediaCache } from "../utils/media";
 import { useIsMobile } from "./ui/use-mobile";
 import type { MetaCreative, MetaCarouselCard } from "../data/types";
 import { uid } from "../utils/uid";
@@ -11,6 +11,7 @@ import { uid } from "../utils/uid";
 import { EditableField, EditableList, CopyField } from "./creative/SharedFields";
 import { EditableImageList, EditableVideoList } from "./creative/MediaEditors";
 import { YouTubePreview, PMaxPreview, PMAX_TABS, PMaxTabId, formatDisplayUrl } from "./creative/Previews";
+import { ImageWithSkeleton } from "./CreativeCard";
 
 export interface Creative {
   id: string;
@@ -258,7 +259,6 @@ export function CreativeModal({ creative, onClose, onSave, companyName, companyU
                 </div>
                 <div>
                   <p className="text-gray-900 text-sm font-semibold">{editMode ? "Editando Criativo" : "Visualização do Criativo"}</p>
-                  <p className="text-xs text-gray-400">{working?.format}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -856,6 +856,20 @@ const Media = ({
   src: string; 
   isReels?: boolean;
 }) => {
+  const isCached = loadedMediaCache.has(normalized);
+  const [hasFirstFrame, setHasFirstFrame] = useState(isCached);
+  const [isBuffering, setIsBuffering] = useState(!isCached);
+
+  useEffect(() => {
+    if (loadedMediaCache.has(normalized)) {
+      setHasFirstFrame(true);
+      setIsBuffering(false);
+    } else {
+      setHasFirstFrame(false);
+      setIsBuffering(true);
+    }
+  }, [normalized]);
+
   if (isYT) {
     return (
       <iframe
@@ -867,16 +881,37 @@ const Media = ({
   }
   if (isDirectVideo) {
     return (
-      <video
-        src={normalized}
-        className="w-full h-full object-cover bg-black/10"
-        muted={muted}
-        autoPlay
-        loop
-        playsInline
-        preload="metadata"
-        crossOrigin="anonymous"
-      />
+      <>
+        {(isBuffering || !hasFirstFrame) && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-10 transition-all duration-300">
+            <div className="w-8 h-8 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
+          </div>
+        )}
+        <video
+          src={normalized}
+          className="w-full h-full object-cover bg-black/10 relative z-0"
+          muted={muted}
+          autoPlay
+          loop
+          playsInline
+          preload="metadata"
+          crossOrigin="anonymous"
+          onLoadedData={() => {
+            loadedMediaCache.add(normalized);
+            setHasFirstFrame(true);
+          }}
+          onCanPlay={() => {
+            loadedMediaCache.add(normalized);
+            setIsBuffering(false);
+          }}
+          onPlaying={() => {
+            loadedMediaCache.add(normalized);
+            setIsBuffering(false);
+          }}
+          onWaiting={() => setIsBuffering(true)}
+          style={{ opacity: hasFirstFrame ? 1 : 0, transition: 'opacity 0.3s ease' }}
+        />
+      </>
     );
   }
   return (
@@ -890,11 +925,11 @@ const Media = ({
           transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
           className="absolute inset-0 w-full h-full overflow-hidden"
         >
-          <img
+          <ImageWithSkeleton
             src={normalized}
-            loading="lazy"
             className={`w-full h-full object-cover ${isReels ? "animate-ken-burns" : ""}`}
-            alt=""
+            skeletonBg="bg-slate-800"
+            spinnerBorder="border-slate-600"
           />
         </motion.div>
       </AnimatePresence>

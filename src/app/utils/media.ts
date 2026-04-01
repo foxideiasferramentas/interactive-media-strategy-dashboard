@@ -8,6 +8,8 @@
 const _urlCache = new Map<string, string>();
 const URL_CACHE_MAX = 500;
 
+export const loadedMediaCache = new Set<string>();
+
 /**
  * Retorna true se a URL aponta para um arquivo de vídeo direto (não YouTube).
  */

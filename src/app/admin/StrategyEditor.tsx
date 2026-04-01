@@ -32,6 +32,7 @@ import {
   Copy,
   ArrowUpDown,
   GitGraph,
+  Monitor,
 } from "lucide-react";
 import { useParams, useNavigate } from "react-router";
 import { useStore } from "../data/store";
@@ -1435,6 +1436,91 @@ export function StrategyEditor() {
                     <p className="text-[10px] text-slate-400">
                       Link público (ex: share/{campaign.slug || "slug"})
                     </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Presentation & Header */}
+              <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
+                    <Monitor className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Apresentação & Cabeçalho</h3>
+                    <p className="text-sm text-slate-500">Personalize o título e as informações de topo da proposta</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Título Principal</label>
+                    <input
+                      type="text"
+                      placeholder="Estratégia Integrada de Mídia Paga"
+                      value={campaign.presentation?.title || ""}
+                      onChange={(e) => setCampaign({
+                        ...campaign,
+                        presentation: { ...(campaign.presentation || {}), title: e.target.value }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2 space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Descrição / Abordagem</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Uma abordagem full-funnel..."
+                      value={campaign.presentation?.description || ""}
+                      onChange={(e) => setCampaign({
+                        ...campaign,
+                        presentation: { ...(campaign.presentation || {}), description: e.target.value }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all resize-none"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Selo da Versão (Badge)</label>
+                    <input
+                      type="text"
+                      placeholder="Proposta Estratégica · 2025"
+                      value={campaign.presentation?.badge || ""}
+                      onChange={(e) => setCampaign({
+                        ...campaign,
+                        presentation: { ...(campaign.presentation || {}), badge: e.target.value }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Rótulo de Canais</label>
+                    <input
+                      type="text"
+                      placeholder="Google Ads + Meta Ads"
+                      value={campaign.presentation?.channelsLabel || ""}
+                      onChange={(e) => setCampaign({
+                        ...campaign,
+                        presentation: { ...(campaign.presentation || {}), channelsLabel: e.target.value }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Período da Proposta</label>
+                    <input
+                      type="text"
+                      placeholder="Q1–Q2 · 2025"
+                      value={campaign.presentation?.periodLabel || ""}
+                      onChange={(e) => setCampaign({
+                        ...campaign,
+                        presentation: { ...(campaign.presentation || {}), periodLabel: e.target.value }
+                      })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium text-slate-900 focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all"
+                    />
                   </div>
                 </div>
               </div>

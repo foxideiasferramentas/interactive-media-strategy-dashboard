@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "motion/react";
 import type { Creative } from "./CreativeModal";
 import type { MetaCarouselCard, MetaCreative } from "../data/types";
 import { getYouTubeId } from "../utils/youtube";
-import { normalizeMediaUrl, isDirectVideoUrl } from "../utils/media";
+import { normalizeMediaUrl, isDirectVideoUrl, loadedMediaCache } from "../utils/media";
 export { PMAX_TABS } from "./creative/Previews";
 import { formatDisplayUrl, PMAX_TABS, type PMaxTabId as PMaxTab } from "./creative/Previews";
 export type { PMaxTabId as PMaxTab } from "./creative/Previews";
@@ -68,24 +68,58 @@ const VideoOverlay = React.memo(({ logoUrl, company }: { logoUrl?: string; compa
 const VideoThumb = React.memo(({ videoId, isShort, rawUrl, logoUrl, company, muted, onMuteToggle }: { videoId: string | null; isShort: boolean; rawUrl?: string; logoUrl?: string; company: string; muted: boolean; onMuteToggle: (muted: boolean) => void }) => {
   const directUrl = rawUrl ? normalizeMediaUrl(rawUrl) : "";
   const isDirect = isDirectVideoUrl(rawUrl);
+  const isCached = loadedMediaCache.has(directUrl);
+  const [hasFirstFrame, setHasFirstFrame] = useState(isCached);
+  const [isBuffering, setIsBuffering] = useState(!isCached);
+
+  useEffect(() => { 
+    if (loadedMediaCache.has(directUrl)) {
+      setHasFirstFrame(true);
+      setIsBuffering(false);
+    } else {
+      setHasFirstFrame(false);
+      setIsBuffering(true);
+    }
+  }, [directUrl]);
 
   if (isDirect) {
     return (
-      <div className="relative w-full overflow-hidden flex items-center justify-center bg-gray-50">
+      <div className="relative w-full overflow-hidden flex items-center justify-center bg-black">
+        {(isBuffering || !hasFirstFrame) && (
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-30 transition-all duration-300">
+            <div className="w-8 h-8 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
+          </div>
+        )}
         <video
           src={directUrl}
-          className="w-full h-auto block"
+          className="w-full h-auto block relative z-20"
           muted={muted}
           playsInline
           loop
           autoPlay
           preload="metadata"
           crossOrigin="anonymous"
+          onLoadedData={() => {
+            loadedMediaCache.add(directUrl);
+            setHasFirstFrame(true);
+          }}
+          onCanPlay={() => {
+            loadedMediaCache.add(directUrl);
+            setIsBuffering(false);
+          }}
+          onPlaying={() => {
+            loadedMediaCache.add(directUrl);
+            setIsBuffering(false);
+          }}
+          onWaiting={() => setIsBuffering(true)}
+          style={{ opacity: hasFirstFrame ? 1 : 0, transition: 'opacity 0.3s ease' }}
         />
-        <VideoOverlay logoUrl={logoUrl} company={company} />
+        <div className="absolute inset-0 z-20 pointer-events-none">
+          <VideoOverlay logoUrl={logoUrl} company={company} />
+        </div>
         <button
           onClick={(e) => { e.stopPropagation(); onMuteToggle(!muted); }}
-          className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+          className="absolute bottom-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
         >
           {muted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
         </button>
@@ -110,7 +144,101 @@ const VideoThumb = React.memo(({ videoId, isShort, rawUrl, logoUrl, company, mut
   );
 });
 
+export const ImageWithSkeleton = React.memo(({ src, className, style, skeletonBg = "bg-slate-100", spinnerBorder = "border-slate-300" }: { src: string, className?: string, style?: React.CSSProperties, skeletonBg?: string, spinnerBorder?: string }) => {
+  const isCached = loadedMediaCache.has(src);
+  const [loaded, setLoaded] = useState(isCached);
+  
+  useEffect(() => { 
+    if (loadedMediaCache.has(src)) {
+      setLoaded(true);
+    } else {
+      setLoaded(false); 
+    }
+  }, [src]);
+
+  const handleLoaded = () => {
+    loadedMediaCache.add(src);
+    setLoaded(true);
+  };
+
+  return (
+    <div className={`relative ${className}`} style={{ ...style, overflow: 'hidden' }}>
+      {!loaded && (
+        <div className={`absolute inset-0 ${skeletonBg} animate-pulse flex items-center justify-center z-10`}>
+          <div className={`w-6 h-6 rounded-full border-2 ${spinnerBorder} border-t-transparent animate-spin opacity-50`} />
+        </div>
+      )}
+      <img
+        src={src}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        onLoad={handleLoaded}
+        onError={handleLoaded}
+        className="absolute inset-0 w-full h-full object-cover"
+        style={{ objectPosition: style?.objectPosition, opacity: loaded ? 1 : 0, transition: "opacity 0.3s ease-in-out" }}
+      />
+    </div>
+  );
+});
+
+export const DirectVideoWithSkeleton = React.memo(({ src, muted, onMuteToggle }: { src: string, muted: boolean, onMuteToggle: (m: boolean) => void }) => {
+  const isCached = loadedMediaCache.has(src);
+  const [hasFirstFrame, setHasFirstFrame] = useState(isCached);
+  const [isBuffering, setIsBuffering] = useState(!isCached);
+  
+  useEffect(() => { 
+    if (loadedMediaCache.has(src)) {
+      setHasFirstFrame(true);
+      setIsBuffering(false);
+    } else {
+      setHasFirstFrame(false);
+      setIsBuffering(true);
+    }
+  }, [src]);
+  
+  return (
+    <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+      {(isBuffering || !hasFirstFrame) && (
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-30 transition-all duration-300">
+          <div className="w-8 h-8 rounded-full border-2 border-white/40 border-t-transparent animate-spin" />
+        </div>
+      )}
+      <video
+        src={src}
+        className="absolute inset-0 w-full h-full object-cover bg-transparent z-20"
+        muted={muted}
+        playsInline
+        loop
+        autoPlay
+        preload="metadata"
+        onLoadedData={() => {
+          loadedMediaCache.add(src);
+          setHasFirstFrame(true);
+        }}
+        onCanPlay={() => {
+          loadedMediaCache.add(src);
+          setIsBuffering(false);
+        }}
+        onPlaying={() => {
+          loadedMediaCache.add(src);
+          setIsBuffering(false);
+        }}
+        onWaiting={() => setIsBuffering(true)}
+        style={{ opacity: hasFirstFrame ? 1 : 0, transition: 'opacity 0.3s ease' }}
+      />
+      <button
+        onClick={(e) => { e.stopPropagation(); onMuteToggle(!muted); }}
+        className="absolute bottom-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+      >
+        {muted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+      </button>
+    </div>
+  );
+});
+
 export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", companyName, companyUrl, companyLogo, forcedPMaxTab, initialOffset = 0, globalSitelinks, globalSnippets, globalCall }: CreativeCardProps) {
+
   const isMeta = creative.format === "Image" || creative.format === "Video" || creative.format === "Carousel";
   const isSearchAd = creative.format.includes("Search") || creative.format.includes("Busca");
   const isPMax = creative.format.includes("Performance Max") || creative.format.includes("PMax");
@@ -449,9 +577,8 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {pmaxTab === "display_h" && (
                 <div>
                   {pmaxImg ? (
-                    <img
+                    <ImageWithSkeleton
                       src={pmaxImg}
-                      alt=""
                       className="w-full h-full object-cover"
                       style={{ objectPosition: `${pmaxFocal.x}% ${pmaxFocal.y}%`, aspectRatio: "16/9" }}
                     />
@@ -475,9 +602,8 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {pmaxTab === "display_v" && (
                 <div className="mx-auto w-full">
                   {pmaxImg ? (
-                    <img
+                    <ImageWithSkeleton
                       src={pmaxImg}
-                      alt=""
                       className="w-full h-full object-cover rounded-t-xl"
                       style={{ objectPosition: `${pmaxFocal.x}% ${pmaxFocal.y}%`, aspectRatio: "4/3" }}
                     />
@@ -498,9 +624,8 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
               {pmaxTab === "discovery" && (
                 <div>
                    {pmaxImg ? (
-                    <img
+                    <ImageWithSkeleton
                       src={pmaxImg}
-                      alt=""
                       className="w-full h-full object-cover"
                       style={{ objectPosition: `${pmaxFocal.x}% ${pmaxFocal.y}%`, aspectRatio: "1.91/1" }}
                     />
@@ -625,52 +750,29 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
 
       // Direct Video
       if (isDirect && normalized) {
-        return (
-          <div className="relative w-full h-full bg-black flex items-center justify-center">
-            <video
-              src={normalized}
-              className="w-full h-full object-cover bg-black/10"
-              muted={mediaMuted}
-              playsInline
-              loop
-              autoPlay
-              preload="metadata"
-            />
-            <button
-              onClick={(e) => { e.stopPropagation(); setMediaMuted((m) => !m); }}
-              className="absolute bottom-2 right-2 z-20 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
-            >
-              {mediaMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
-            </button>
-          </div>
-        );
+        return <DirectVideoWithSkeleton src={normalized} muted={mediaMuted} onMuteToggle={setMediaMuted} />;
       }
 
       // Image with Sliding Transition
       return (
         <div className="relative w-full h-full overflow-hidden bg-black">
-          {!imgLoaded && !isReels && (
-            <div className="absolute inset-0 bg-slate-900/10" style={{ zIndex: 1 }} />
-          )}
           <AnimatePresence initial={false}>
             <motion.div
               key={`${metaPlacement}-${isCarousel ? (currentCard?.id || carouselIdx) : metaImgIdx}`}
               initial={isReels ? { x: "100%", opacity: 1 } : { opacity: 0 }}
-              animate={isReels ? { x: 0, opacity: 1 } : { x: 0, opacity: imgLoaded ? 1 : 0 }}
+              animate={{ x: 0, opacity: 1 }}
               exit={isReels ? { x: "-100%", opacity: 1 } : { opacity: 0 }}
               transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
               className="absolute inset-0 w-full h-full overflow-hidden"
             >
-              <img
+              <ImageWithSkeleton
                 src={normalized}
-                alt=""
-                loading="lazy"
                 className={`w-full h-full object-cover ${isReels ? "animate-ken-burns" : ""}`}
-                onLoad={() => setImgLoaded(true)}
+                skeletonBg="bg-slate-800"
+                spinnerBorder="border-slate-600"
                 style={creative.imageFocalPoints?.[currentImgUrl] ? {
                   objectPosition: `${creative.imageFocalPoints[currentImgUrl].x}% ${creative.imageFocalPoints[currentImgUrl].y}%`
                 } : undefined}
-                onError={(e) => { (e.target as HTMLImageElement).style.opacity = "0"; setImgLoaded(true); }}
               />
             </motion.div>
           </AnimatePresence>
@@ -983,13 +1085,10 @@ export function CreativeCard({ creative, onClick, accentClass = "bg-blue-600", c
           style={{ aspectRatio: videoId ? videoAspect : "4/3" }}
         >
           {thumbSrc && !imgError ? (
-            <div className="relative w-full h-full">
-              <img
+            <div className="relative w-full h-full group/thumb">
+              <ImageWithSkeleton
                 src={thumbSrc}
-                loading="lazy"
-                alt=""
-                onError={() => setImgError(true)}
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover/thumb:scale-105"
                 style={(() => {
                   const u = creative.image || creative.images?.[0] || "";
                   const fp = creative.imageFocalPoints?.[u] ?? { x: 50, y: 50 };

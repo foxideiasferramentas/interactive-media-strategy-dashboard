@@ -582,15 +582,10 @@ export function GoogleAds() {
                           transition={{ duration: 0.2 }}
                           className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100"
                         >
-                          <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm uppercase tracking-widest text-gray-500">
-                                Criativos para:
-                              </p>
-                              <span className={`text-sm px-3 py-1 rounded-md font-medium ${colors.badge}`}>
-                                {selectedAudience.title}
-                              </span>
-                            </div>
+                          <div className="flex items-center justify-between mb-4 px-1">
+                            <p className="text-sm uppercase tracking-widest text-gray-400 font-bold">
+                              Criativos
+                            </p>
                             {isAuthenticated && (
                               <button
                                 onClick={() => setShowCreativeLibrary(true)}
@@ -733,7 +728,7 @@ function AudiencePresentationCard({
   onEdit?: (e: { stopPropagation: () => void }) => void;
   onDelete?: (e: { stopPropagation: () => void }) => void;
 }) {
-  const hasDetails = !!(audience.gender || audience.ageRange || audience.interests || audience.keywords || (audience.description && audience.description.length > 80));
+  const hasDetails = !!(audience.gender || audience.ageRange || audience.interests || audience.keywords || audience.description);
 
   return (
     <motion.div
@@ -741,7 +736,7 @@ function AudiencePresentationCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06 }}
       onClick={onClick}
-      className={`group/aud-card bg-white rounded-xl border p-5 transition-all cursor-pointer relative overflow-hidden flex flex-col ${
+      className={`group/aud-card bg-white rounded-xl border px-4 py-3.5 transition-all cursor-pointer relative overflow-hidden flex flex-col ${
         isSelected
           ? colors.ring
           : "border-gray-200 hover:border-gray-300 hover:shadow-sm"
@@ -754,12 +749,21 @@ function AudiencePresentationCard({
         </div>
       )}
       <div className="flex-1">
-        <h4 className="text-base mb-1.5 text-gray-900 font-semibold">
+        <h4 className="text-[15px] mb-1 text-gray-900 font-bold leading-tight">
           {audience.title}
         </h4>
-        <p className={`text-sm leading-relaxed text-gray-500 ${!isExpanded ? "line-clamp-2" : ""}`}>
-          {audience.description}
-        </p>
+        <AnimatePresence>
+          {isExpanded && audience.description && (
+            <motion.p 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1, marginTop: 6 }}
+              exit={{ height: 0, opacity: 0, marginTop: 0 }}
+              className="text-sm leading-relaxed text-gray-500 overflow-hidden"
+            >
+              {audience.description}
+            </motion.p>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {isExpanded && (audience.gender || audience.ageRange || audience.interests || audience.keywords) && (
@@ -799,7 +803,7 @@ function AudiencePresentationCard({
       {hasDetails && (
         <button
           onClick={(e) => { e.stopPropagation(); onToggleExpand(!isExpanded); }}
-          className="mt-3 text-xs font-bold text-gray-400 hover:text-emerald-600 transition-colors self-start flex items-center gap-1"
+          className="mt-2 text-[10px] font-bold text-gray-400 hover:text-emerald-600 transition-colors self-start flex items-center gap-1"
         >
           {isExpanded ? "Ver menos" : "Ver detalhes"}
         </button>

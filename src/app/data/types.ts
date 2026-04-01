@@ -184,6 +184,14 @@ export interface Campaign {
     middle: GoogleAudience[];
     bottom: GoogleAudience[];
   };
+  presentation?: {
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    channelsLabel?: string;
+    periodLabel?: string;
+    badge?: string;
+  };
 }
 
 export type StageKey = "top" | "middle" | "bottom";

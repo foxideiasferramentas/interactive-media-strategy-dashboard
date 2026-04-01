@@ -77,12 +77,11 @@ const channels = [
     name: "Meta Ads",
     platform: "Facebook & Instagram",
     description:
-      "Segmentação avançada por comportamento e interesses. Formatos visuais impactantes para cada etapa do funil, desde awareness até conversão.",
+      "Segmentação por comportamento e interesses. Formatos visuais impactantes para cada etapa do funil",
     highlights: [
       "Públicos personalizados e Lookalike",
       "Feed, Stories, Reels e Carrossel",
       "Remarketing comportamental",
-      "Otimização por conversão (CAPI)",
     ],
     accent: "blue",
   },
@@ -98,10 +97,9 @@ const channels = [
     description:
       "Captura de intenção ativa nas buscas e presença visual em toda a web. Estratégia multi-formato para dominar cada etapa da jornada do usuário.",
     highlights: [
-      "Search ads por intenção de compra",
+      "Pesquisa por intenção de compra (palavras-chave)",
       "Display em sites parceiros",
-      "YouTube In-Stream & Bumper",
-      "Remarketing dinâmico (RLSA)",
+      "Anúncios no YouTube",
     ],
     accent: "slate",
   },
@@ -512,7 +510,7 @@ export function Overview() {
     {
       icon: TrendingUp,
       label: "ROAS Alvo",
-      value: obj?.roas ?? "4×",
+      value: obj?.roas,
       sub: "Retorno sobre o investimento",
       color: "text-blue-600",
       bg: "bg-blue-50",
@@ -521,7 +519,7 @@ export function Overview() {
     {
       icon: Users,
       label: "Leads Qualificados",
-      value: obj?.leads ?? "200+",
+      value: obj?.leads,
       sub: "Por mês, funil completo",
       color: "text-violet-600",
       bg: "bg-violet-50",
@@ -530,7 +528,7 @@ export function Overview() {
     {
       icon: Target,
       label: "Alcance Mensal",
-      value: obj?.reach ?? "500K",
+      value: obj?.reach,
       sub: "Impressões qualificadas",
       color: "text-emerald-600",
       bg: "bg-emerald-50",
@@ -539,13 +537,15 @@ export function Overview() {
     {
       icon: Zap,
       label: "Redução de CAC",
-      value: obj?.cac ?? "−30%",
+      value: obj?.cac,
       sub: "Custo de aquisição de cliente",
       color: "text-amber-600",
       bg: "bg-amber-50",
       border: "border-amber-200",
     },
   ];
+
+  const activeObjectives = objectives.filter((obj) => obj.value);
 
   // Dynamic funnel stages
   const f = campaign?.funnel;
@@ -598,7 +598,27 @@ export function Overview() {
   const metaPct = campaign?.budgetAllocation.metaPercent ?? 65;
   const googlePct = campaign?.budgetAllocation.googlePercent ?? 35;
   const totalBudget = campaign?.budget ?? 15000;
+  const p = campaign?.presentation || {};
+  const metaAmount = (totalBudget * metaPct) / 100;
+  const googleAmount = (totalBudget * googlePct) / 100;
   const circumference = 251.2;
+
+  const formatDateRange = (start?: string, end?: string) => {
+    if (!start || !end) return "Q1–Q2 · 2025";
+    try {
+      // Ajuste para evitar problemas de fuso horário em strings YYYY-MM-DD
+      const s = new Date(start + "T12:00:00");
+      const e = new Date(end + "T12:00:00");
+      const months = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+      const sStr = `${months[s.getMonth()]}/${s.getFullYear().toString().slice(-2)}`;
+      const eStr = `${months[e.getMonth()]}/${e.getFullYear().toString().slice(-2)}`;
+      return `${sStr} – ${eStr}`;
+    } catch {
+      return "Q1–Q2 · 2025";
+    }
+  };
+
+  const autoPeriod = formatDateRange(campaign?.startDate, campaign?.endDate);
 
   return (
     <div className="max-w-5xl mx-auto space-y-12">
@@ -612,8 +632,16 @@ export function Overview() {
       >
         <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 md:px-10 py-10 md:py-12 relative overflow-hidden">
           {/* decorative grid */}
-          <div
+          <motion.div
             className="absolute inset-0 opacity-[0.04]"
+            animate={{ 
+              backgroundPosition: ["0px 0px", "-40px 0px"] 
+            }}
+            transition={{ 
+              duration: 3, 
+              repeat: Infinity, 
+              ease: "linear" 
+            }}
             style={{
               backgroundImage: `linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)`,
               backgroundSize: "40px 40px",
@@ -622,22 +650,19 @@ export function Overview() {
           <div className="relative">
             <div className="flex items-center gap-2 mb-6">
               <span className="text-[10px] uppercase tracking-[0.2em] text-blue-300 bg-blue-500/20 border border-blue-400/20 px-3 py-1.5 rounded-full">
-                Proposta Estratégica · 2025
+                {p.badge || "Proposta Estratégica · 2025"}
               </span>
             </div>
-            <h1 className="text-white mb-4" style={{ fontSize: "clamp(1.5rem, 5vw, 2rem)", fontWeight: 700, lineHeight: 1.2 }}>
-              Estratégia Integrada<br />de Mídia Paga
+            <h1 className="text-white mb-4 whitespace-pre-line" style={{ fontSize: "clamp(1.5rem, 5vw, 2rem)", fontWeight: 700, lineHeight: 1.2 }}>
+              {p.title || `Estratégia Integrada\nde Mídia Paga`}
             </h1>
             <p className="text-slate-300 max-w-2xl leading-relaxed mb-8" style={{ fontSize: "clamp(0.875rem, 2vw, 1rem)" }}>
-              Uma abordagem full-funnel, orientada a dados e integrada entre Google Ads e Meta Ads,
-              projetada para maximizar alcance, geração de leads qualificados e retorno sobre
-              o investimento em cada etapa da jornada do cliente.
+              {p.description || "Uma abordagem full-funnel, orientada a dados e integrada entre Google Ads e Meta Ads, projetada para maximizar alcance, geração de leads qualificados e retorno sobre o investimento em cada etapa da jornada do cliente."}
             </p>
             <div className="flex flex-wrap gap-6">
               {[
-                { label: "Canais", value: "Google Ads + Meta Ads" },
-                { label: "Modelo", value: "Full-Funnel" },
-                { label: "Período", value: "Q1–Q2 · 2025" },
+                { label: "Canais", value: p.channelsLabel || "Google Ads + Meta Ads" },
+                { label: "Período", value: p.periodLabel || autoPeriod },
               ].map((item) => (
                 <div key={item.label}>
                   <p className="text-slate-500 text-xs uppercase tracking-widest mb-0.5">{item.label}</p>
@@ -648,9 +673,9 @@ export function Overview() {
           </div>
         </div>
 
-        {/* Bottom stats bar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 md:divide-x divide-gray-200 border-t border-gray-200">
-          {objectives.map((obj, i) => {
+        {/* Bottom stats bar - Flexible layout */}
+        <div className="flex flex-wrap md:flex-nowrap border-t border-gray-200">
+          {activeObjectives.map((obj, i) => {
             const Icon = obj.icon;
             return (
               <motion.div
@@ -659,7 +684,11 @@ export function Overview() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: false, margin: "-40px" }}
                 transition={{ duration: 0.6, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                className="px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-b md:border-b-0 border-gray-200 last:border-b-0 odd:border-r md:border-r-0"
+                className={`flex-1 min-w-[50%] md:min-w-0 px-4 md:px-6 py-4 md:py-5 flex items-center gap-3 border-gray-200 
+                  ${i !== activeObjectives.length - 1 ? 'md:border-r' : ''} 
+                  ${i % 2 === 0 ? 'border-r md:border-r-0' : ''}
+                  ${i < activeObjectives.length - (activeObjectives.length % 2 === 0 ? 2 : 1) ? 'border-b md:border-b-0' : 'md:border-b-0'}
+                `}
               >
                 <div className={`w-8 h-8 md:w-9 md:h-9 rounded-lg ${obj.bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-3.5 h-3.5 md:w-4 md:h-4 ${obj.color}`} />
@@ -697,7 +726,10 @@ export function Overview() {
                   <div className="w-3 h-3 rounded-sm bg-blue-600 shadow-sm shadow-blue-200" />
                   <span className="text-sm text-gray-700" style={{ fontWeight: 500 }}>Meta Ads (Facebook & Instagram)</span>
                 </div>
-                <span className="text-sm text-gray-900" style={{ fontWeight: 600 }}>{metaPct}%</span>
+                <div className="text-right">
+                  <span className="text-sm text-gray-900 block leading-tight" style={{ fontWeight: 600 }}>{metaPct}%</span>
+                  <span className="text-[11px] text-blue-600/80 font-bold block leading-none">R$ {metaAmount.toLocaleString("pt-BR")}</span>
+                </div>
               </div>
               <div className="w-full bg-gray-50 rounded-full h-2 border border-gray-100 overflow-hidden">
                 <motion.div
@@ -714,7 +746,10 @@ export function Overview() {
                   <div className="w-3 h-3 rounded-sm bg-emerald-500 shadow-sm shadow-emerald-200" />
                   <span className="text-sm text-gray-700" style={{ fontWeight: 500 }}>Google Ads (Search & YouTube)</span>
                 </div>
-                <span className="text-sm text-gray-900" style={{ fontWeight: 600 }}>{googlePct}%</span>
+                <div className="text-right">
+                  <span className="text-sm text-gray-900 block leading-tight" style={{ fontWeight: 600 }}>{googlePct}%</span>
+                  <span className="text-[11px] text-emerald-600/80 font-bold block leading-none">R$ {googleAmount.toLocaleString("pt-BR")}</span>
+                </div>
               </div>
               <div className="w-full bg-gray-50 rounded-full h-2 border border-gray-100 overflow-hidden">
                 <motion.div
@@ -850,9 +885,14 @@ export function Overview() {
                   <h3 className="text-gray-900 text-xl" style={{ fontWeight: 600, letterSpacing: '-0.01em' }}>{stage.label}</h3>
                 </div>
 
-                <p className="text-sm text-gray-500 leading-relaxed mb-6 flex-1">
-                  {stage.description}
-                </p>
+                <div className="text-sm text-gray-500 leading-relaxed mb-6 flex-1 space-y-2">
+                  {stage.description.split("\n").filter(line => line.trim()).map((line, idx) => (
+                    <div key={idx} className="flex gap-2.5 items-start">
+                      <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${stage.color} mt-1.5`} />
+                      <p>{line.trim()}</p>
+                    </div>
+                  ))}
+                </div>
 
               </div>
             </motion.div>
@@ -1073,17 +1113,6 @@ export function Overview() {
         </div>
       </motion.div>}
 
-      {/* Bottom note */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.3 }}
-        className="text-center pb-4"
-      >
-        <p className="text-xs text-gray-300">
-          Documento confidencial · Estratégia de Mídia Paga 2025 · Uso interno
-        </p>
-      </motion.div>
     </div>
   );
 }

@@ -65,8 +65,7 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
         <p className="text-xs uppercase tracking-widest text-gray-400 mb-4 px-1 font-medium">Etapas do Funil</p>
 
         <div className="relative">
-          {/* Vertical line */}
-          <div className="absolute left-[19px] top-6 bottom-6 w-px bg-gray-100 z-0" />
+          {/* Vertical line removed */}
 
           <div className="space-y-1 relative z-10">
             {visibleSteps.map((step, i) => {
@@ -84,19 +83,13 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
                   >
                     {/* Step indicator */}
                     <div className="flex-shrink-0 mt-0.5">
-                      {isPast ? (
-                        <div className={`w-9 h-9 rounded-full ${step.activeBg} flex items-center justify-center`}>
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                        </div>
-                      ) : isActive ? (
-                        <div className={`w-9 h-9 rounded-full ${step.activeBg} flex items-center justify-center shadow-sm`}>
-                          <span className="text-white text-xs" style={{ fontWeight: 700 }}>{step.number}</span>
-                        </div>
-                      ) : (
-                        <div className="w-9 h-9 rounded-full bg-gray-100 border-2 border-gray-200 flex items-center justify-center">
-                          <span className="text-gray-400 text-xs" style={{ fontWeight: 600 }}>{step.number}</span>
-                        </div>
-                      )}
+                      <div className={`
+                        w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300
+                        ${isPast || isActive ? step.activeBg : "bg-gray-100 border-2 border-gray-200"}
+                        ${isActive ? "shadow-md scale-105" : ""}
+                      `}>
+                        <CheckCircle2 className={`w-4 h-4 ${isPast || isActive ? "text-white" : "text-gray-300"}`} />
+                      </div>
                     </div>
 
                     {/* Label */}
@@ -115,12 +108,22 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
 
                   {/* Connector dots between steps */}
                   {i < visibleSteps.length - 1 && (
-                    <div className="flex justify-start pl-[23px] py-1">
+                    <div className="flex justify-start pl-[26px] py-1">
                       <div className="space-y-0.5">
                         {[0, 1, 2].map((dot) => (
-                          <div
+                          <motion.div
                             key={dot}
-                            className={`w-1 h-1 rounded-full ${isPast || isActive ? step.dotColor : "bg-gray-200"} opacity-${dot === 1 ? "60" : "30"}`}
+                            animate={{ 
+                              opacity: [0.3, 0.8, 0.3],
+                              scale: [1, 1.2, 1]
+                            }}
+                            transition={{ 
+                              duration: 2, 
+                              repeat: Infinity, 
+                              delay: dot * 0.3,
+                              ease: "easeInOut"
+                            }}
+                            className={`w-1 h-1 rounded-full ${isPast || isActive ? step.dotColor : "bg-gray-200"}`}
                           />
                         ))}
                       </div>
