@@ -1,4 +1,4 @@
-import { Link, useParams } from "react-router";
+import { Link, useParams, useLocation } from "react-router";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -495,9 +495,16 @@ function MediaFlowMap({ campaign }: { campaign: any }) {
 
 export function Overview() {
   const { campaignId } = useParams();
+  const location = useLocation();
   const { getActiveCampaign, getCampaign } = useStore();
   
   const campaign = campaignId ? getCampaign(campaignId) : getActiveCampaign();
+
+  // Helper to resolve links relative to campaign/share context
+  const isShare = location.pathname.includes("/share/");
+  const pathPrefix = isShare 
+    ? `/share/${campaignId || ""}` 
+    : campaignId ? `/${campaignId}` : "";
 
   // Dynamic objectives — fall back to static defaults if no campaign
   const obj = campaign?.objectives;
@@ -913,7 +920,7 @@ export function Overview() {
               </ul>
 
               <Link
-                to={ch.path}
+                to={pathPrefix + ch.path}
                 className={`
                   flex items-center justify-between w-full px-5 py-3 rounded-xl transition-all group shadow-sm hover:shadow-lg border-2
                   ${ch.accent === 'blue' 

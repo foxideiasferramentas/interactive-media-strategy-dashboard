@@ -940,15 +940,25 @@ export function StrategyEditor() {
   };
 
   const reorderAudience = (audienceId: string, channel: "meta" | "google", stage: StageKey, dir: "up" | "down") => {
-    const list = channel === "meta" ? [...campaign.meta[stage]] : [...campaign.google[stage]];
-    const idx = list.findIndex((a) => a.id === audienceId);
-    if (idx === -1) return;
-    const newIdx = dir === "up" ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= list.length) return;
-    const [item] = list.splice(idx, 1);
-    list.splice(newIdx, 0, item);
-    if (channel === "meta") setMetaAudiences(stage, list as MetaAudience[]);
-    else setGoogleAudiences(stage, list as GoogleAudience[]);
+    if (channel === "meta") {
+      const list = [...campaign.meta[stage]];
+      const idx = list.findIndex((a) => a.id === audienceId);
+      if (idx === -1) return;
+      const newIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= list.length) return;
+      const [item] = list.splice(idx, 1);
+      list.splice(newIdx, 0, item);
+      setMetaAudiences(stage, list);
+    } else {
+      const list = [...campaign.google[stage]];
+      const idx = list.findIndex((a) => a.id === audienceId);
+      if (idx === -1) return;
+      const newIdx = dir === "up" ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= list.length) return;
+      const [item] = list.splice(idx, 1);
+      list.splice(newIdx, 0, item);
+      setGoogleAudiences(stage, list);
+    }
   };
 
   const addMetaAudience = () => {
@@ -998,9 +1008,9 @@ export function StrategyEditor() {
 
   const handleShare = () => {
     const identifier = campaign.slug || campaign.id;
-    const shareUrl = `${window.location.origin}/${identifier}`;
+    const shareUrl = `${window.location.origin}/share/${identifier}`;
     navigator.clipboard.writeText(shareUrl);
-    toast.success("Link público copiado para a área de transferência!");
+    toast.success("Link público para o cliente copiado!");
   };
 
   // ─── Progress counters ──────────────────────────────────────────────────────
@@ -1410,7 +1420,7 @@ export function StrategyEditor() {
                       Slug (URL Amigável)
                     </label>
                     <div className="flex items-center gap-2 px-4 py-3 bg-slate-100/50 border border-slate-200 rounded-xl">
-                      <span className="text-xs text-slate-400 font-mono">dashboard/</span>
+                      <span className="text-xs text-slate-400 font-mono">share/</span>
                       <input
                         type="text"
                         value={campaign.slug || ""}
@@ -1423,7 +1433,7 @@ export function StrategyEditor() {
                       />
                     </div>
                     <p className="text-[10px] text-slate-400">
-                      Este é o link que o cliente verá (ex: dashboard/{campaign.slug || "slug"})
+                      Link público (ex: share/{campaign.slug || "slug"})
                     </p>
                   </div>
                 </div>

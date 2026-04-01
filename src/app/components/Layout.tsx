@@ -46,7 +46,7 @@ const navItems: NavItem[] = [
 
 export function Layout() {
   const { campaignId } = useParams();
-  const { logout, getCampaign, getActiveCampaign } = useStore();
+  const { logout, getCampaign, getActiveCampaign, isAuthenticated } = useStore();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -74,8 +74,11 @@ export function Layout() {
     if (!path) return undefined;
     const identifier = campaign?.slug || campaign?.id || campaignId;
     if (!identifier) return path;
+    
+    const isShare = location.pathname.includes("/share/");
     const base = path === "/" ? "" : path;
-    return `/${identifier}${base}`;
+    const prefix = isShare ? `/share/${identifier}` : `/${identifier}`;
+    return `${prefix}${base}`;
   };
   const isMobile = useIsMobile();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -233,21 +236,31 @@ export function Layout() {
         </div>
         
         <div className="flex flex-col gap-2 mt-3">
-          <Link 
-            to="/admin" 
-              className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
-              Acesso Restrito Admin
-            </Link>
+          {isAuthenticated && (
+            <>
+              <Link 
+                to="/admin" 
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-blue-600 transition-colors group"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 transition-colors" />
+                Painel Admin
+              </Link>
 
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
-          >
-            <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
-            Encerrar Sessão
-          </button>
+              <button
+                onClick={logout}
+                className="flex items-center gap-2 text-xs text-red-400 hover:text-red-600 transition-colors group pt-1"
+              >
+                <LogOut className="w-3.5 h-3.5 text-red-300 group-hover:text-red-500 transition-colors" />
+                Encerrar Sessão
+              </button>
+            </>
+          )}
+          
+          {!isAuthenticated && (
+            <div className="flex items-center gap-2 text-[10px] text-gray-300 italic">
+              Apresentação Protegida · Fox Ideias
+            </div>
+          )}
         </div>
       </div>
     </>

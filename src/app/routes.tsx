@@ -18,10 +18,9 @@ export const router = createBrowserRouter([
     path: "/login",
     Component: LoginPage,
   },
-  // ─── Protected Admin Routes ────────────────────────────────────────────────
+  // ─── Protected Routes (Admin & Presentation) ────────────────────────────────
   {
-    path: "/admin",
-    Component: AuthGuard,
+    element: <AuthGuard />,
     children: [
       {
         path: "/admin",
@@ -36,11 +35,20 @@ export const router = createBrowserRouter([
           { path: "settings", Component: Settings },
         ],
       },
+      {
+        path: "/:campaignId",
+        Component: Layout,
+        children: [
+          { index: true, Component: Overview },
+          { path: "meta-ads", Component: MetaAds },
+          { path: "google-ads", Component: GoogleAds },
+        ],
+      },
     ],
   },
-  // ─── Public/Presentation Routes (with ID or Slug) ─────────────────────────
+  // ─── Public/Presentation Routes ──────────────────────────────────────────
   {
-    path: "/share/:campaignId", // Backwards compatibility
+    path: "/share/:campaignId",
     Component: Layout,
     children: [
       { index: true, Component: Overview },
@@ -48,16 +56,7 @@ export const router = createBrowserRouter([
       { path: "google-ads", Component: GoogleAds },
     ],
   },
-  {
-    path: "/:campaignId", // Main dynamic route
-    Component: Layout,
-    children: [
-      { index: true, Component: Overview },
-      { path: "meta-ads", Component: MetaAds },
-      { path: "google-ads", Component: GoogleAds },
-    ],
-  },
-  // ─── Root Route (Generic - Redirection/Fallback) ──────────────────────────
+  // ─── Root Route (Fallback/Public) ────────────────────────────────────────
   {
     path: "/",
     Component: Layout,
