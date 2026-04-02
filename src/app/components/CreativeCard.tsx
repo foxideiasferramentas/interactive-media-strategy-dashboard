@@ -119,7 +119,7 @@ const VideoThumb = React.memo(({ videoId, isShort, rawUrl, logoUrl, company, mut
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onMuteToggle(!muted); }}
-          className="absolute bottom-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+          className="absolute top-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
         >
           {muted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
         </button>
@@ -229,7 +229,7 @@ export const DirectVideoWithSkeleton = React.memo(({ src, muted, onMuteToggle }:
       />
       <button
         onClick={(e) => { e.stopPropagation(); onMuteToggle(!muted); }}
-        className="absolute bottom-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
+        className="absolute top-2 right-2 z-30 w-7 h-7 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center hover:bg-black/70 transition-colors"
       >
         {muted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
       </button>
