@@ -443,6 +443,10 @@ export function GoogleAds() {
   const funnelStage = campaign?.funnel[activeStep];
   const tagline = funnelStage?.subtitle ?? activeStep;
   const objective = funnelStage?.description ?? "";
+  const objectiveList = objective
+    .split('\n')
+    .map(line => line.replace(/^[-•*]\s*/, '').trim())
+    .filter(Boolean);
 
   const selectedAudience = audiences[selectedAudienceIndex];
 
@@ -501,15 +505,22 @@ export function GoogleAds() {
                 className="space-y-6"
               >
                 {/* Stage header */}
-                <div className="bg-white rounded-xl border border-gray-100 px-6 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-2 h-8 rounded-full ${colors.accent}`} />
-                    <div>
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm">
+                  <div className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-1.5 h-5 rounded-full ${colors.accent}`} />
                       <p className="text-gray-900 font-semibold text-lg">{tagline}</p>
-                      {objective && (
-                        <p className="text-base text-gray-400 mt-0.5">{objective}</p>
-                      )}
                     </div>
+                    {objectiveList.length > 0 && (
+                      <div className="pl-[26px] text-base text-gray-400 mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        {objectiveList.map((obj, i) => (
+                          <div key={i} className="flex items-center gap-x-2">
+                            {i > 0 && <div className={`w-1 h-1 rounded-full ${colors.accent} opacity-60`} />}
+                            <span>{obj}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

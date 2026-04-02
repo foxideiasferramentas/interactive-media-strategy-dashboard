@@ -95,12 +95,12 @@ export function FunnelSidebar({ active, onChange, filledSteps }: FunnelSidebarPr
                     {/* Label */}
                     <div className="flex-1 min-w-0 pt-0.5">
                       <p
-                        className={`text-base leading-tight ${isActive ? step.activeText : isPast ? "text-gray-500" : "text-gray-400"}`}
+                        className={`text-[15px] tracking-tight leading-tight ${isActive ? step.activeText : isPast ? "text-gray-500" : "text-gray-400"}`}
                         style={{ fontWeight: isActive ? 600 : 400 }}
                       >
                         {step.label}
                       </p>
-                      <p className={`text-sm mt-0.5 leading-tight ${isActive ? step.color : "text-gray-300"}`}>
+                      <p className={`text-xs mt-0.5 leading-tight ${isActive ? step.color : "text-gray-300"}`}>
                         {step.subtitle}
                       </p>
                     </div>

@@ -482,6 +482,10 @@ export function MetaAds() {
   const funnelStage = campaign?.funnel[activeStep];
   const tagline = funnelStage?.subtitle ?? activeStep;
   const objective = funnelStage?.description ?? "";
+  const objectiveList = objective
+    .split('\n')
+    .map(line => line.replace(/^[-•*]\s*/, '').trim())
+    .filter(Boolean);
 
   const selectedAudience = audiences[selectedAudienceIndex];
 
@@ -544,14 +548,21 @@ export function MetaAds() {
               >
                 {/* Stage header */}
                 <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
-                  <div className="flex items-center gap-3 px-6 py-4">
-                    <div className={`w-2 h-8 rounded-full ${colors.accent}`} />
-                    <div>
+                  <div className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-1.5 h-5 rounded-full ${colors.accent}`} />
                       <p className="text-gray-900 font-semibold text-lg">{tagline}</p>
-                      {objective && (
-                        <p className="text-base text-gray-400 mt-0.5">{objective}</p>
-                      )}
                     </div>
+                    {objectiveList.length > 0 && (
+                      <div className="pl-[26px] mt-1.5 space-y-1">
+                        {objectiveList.map((obj, i) => (
+                          <div key={i} className="flex items-center gap-x-2 text-[15px] text-gray-400 leading-tight">
+                            <div className={`w-1 h-1 rounded-full ${colors.accent} opacity-60 flex-shrink-0`} />
+                            <span>{obj}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 

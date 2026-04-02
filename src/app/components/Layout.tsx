@@ -110,7 +110,7 @@ export function Layout() {
   const SidebarContent = () => (
     <>
       {/* Brand */}
-      <div className="px-6 py-6 border-b border-gray-100">
+      <div className="px-6 py-4 border-b border-gray-100">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
             <BarChart2 className="w-4 h-4 text-white" />
@@ -289,7 +289,7 @@ export function Layout() {
       {/* Main */}
       <div className={`flex-1 flex flex-col min-h-screen ${isMobile ? "ml-0" : "ml-64"}`}>
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-100 px-4 md:px-8 py-4 flex items-center justify-between sticky top-0 z-20">
+        <header className="bg-white border-b border-gray-100 px-4 md:px-6 py-2.5 flex items-center justify-between sticky top-0 z-20 shadow-sm shadow-gray-100/50">
           <div className="flex items-center gap-4">
             {isMobile && (
               <Button
