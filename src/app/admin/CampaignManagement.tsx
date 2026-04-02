@@ -322,7 +322,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
       >
         {/* ── Mode: choose ────────────────────────────────────────────────── */}
         {mode === "choose" && (
-          <div className="p-8">
+          <div className="p-4 md:p-8">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-slate-900">Nova Campanha</h3>
               <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -372,7 +372,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
 
         {/* ── Mode: manual ────────────────────────────────────────────────── */}
         {mode === "manual" && (
-          <div className="p-8 max-h-[90vh] overflow-y-auto">
+          <div className="p-4 md:p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <div className="flex items-center gap-3">
                 <button onClick={() => setMode("choose")} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -473,7 +473,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
 
         {/* ── Mode: ai ────────────────────────────────────────────────────── */}
         {mode === "ai" && (
-          <div className="p-8 max-h-[90vh] overflow-y-auto">
+          <div className="p-4 md:p-8 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-3">
                 <button onClick={() => setMode("choose")} className="text-slate-400 hover:text-slate-600 transition-colors">
@@ -570,7 +570,7 @@ function CreateModal({ onSave, onClose, clients }: CreateModalProps) {
 
         {/* ── Mode: error ─────────────────────────────────────────────────── */}
         {mode === "error" && (
-          <div className="p-8 flex flex-col items-center text-center gap-4">
+          <div className="p-4 md:p-8 flex flex-col items-center text-center gap-4">
             <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
               <AlertCircle className="w-7 h-7 text-red-500" />
             </div>
@@ -625,7 +625,7 @@ function DeleteModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 p-8"
+        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-200 p-4 md:p-8"
       >
         <div className="flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">

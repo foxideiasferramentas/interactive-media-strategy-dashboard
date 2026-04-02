@@ -121,7 +121,7 @@ function ClientModal({ initial, onSave, onClose, isEdit }: ClientModalProps) {
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden"
       >
-        <div className="p-8 max-h-[90vh] overflow-y-auto">
+        <div className="p-4 md:p-8 max-h-[90vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-bold text-slate-900">
               {isEdit ? "Editar Cliente" : "Novo Cliente"}
@@ -215,7 +215,7 @@ function DeleteModal({
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 p-8"
+        className="relative w-full max-w-sm bg-white rounded-3xl shadow-2xl border border-slate-100 p-4 md:p-8"
       >
         <div className="flex flex-col items-center text-center gap-4">
           <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
@@ -320,7 +320,7 @@ export function ClientManagement() {
 
       {/* Search */}
       <div
-        className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm text-center"
+        className="bg-white rounded-2xl border border-slate-200 p-4 md:p-8 shadow-sm"
       >
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />

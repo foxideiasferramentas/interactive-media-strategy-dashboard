@@ -333,7 +333,7 @@ function EmptyState({ step }: { step: FunnelStep }) {
     bottom: "Fundo de Funil",
   };
   return (
-    <div className="bg-white rounded-xl border border-gray-100 px-8 py-16 text-center">
+    <div className="bg-white rounded-xl border border-gray-100 px-4 md:px-8 py-10 md:py-16 text-center">
       <p className="text-gray-400 font-medium text-lg">
         Nenhum público cadastrado para o {labels[step]}.
       </p>
@@ -453,23 +453,23 @@ export function GoogleAds() {
   return (
     <div className="max-w-6xl mx-auto pb-12 px-4 md:px-0">
       {/* Page Header */}
-      <div className="flex items-center gap-4 mb-8">
-        <div className="w-12 h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm flex-shrink-0">
-          <GoogleIcon className="w-6 h-6" />
+      <div className="flex items-center gap-4 mb-6 md:mb-8">
+        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm flex-shrink-0">
+          <GoogleIcon className="w-5 h-5 md:w-6 md:h-6" />
         </div>
-        <div>
-          <div className="flex items-center gap-2 mb-0.5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-0.5 flex-wrap">
             <h1
               className="text-gray-900"
-              style={{ fontWeight: 700, fontSize: "1.4rem" }}
+              style={{ fontWeight: 700, fontSize: "clamp(1.1rem, 4vw, 1.4rem)" }}
             >
               Google Ads
             </h1>
-            <span className="text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 px-3 py-1 rounded-full font-medium">
+            <span className="text-xs md:text-sm text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 md:px-3 py-0.5 md:py-1 rounded-full font-medium whitespace-nowrap">
               Search · Display · YouTube
             </span>
           </div>
-          <p className="text-base text-gray-400">
+          <p className="text-sm md:text-base text-gray-400 leading-snug">
             Captura de intenção por palavras-chave, rede de display e vídeo
           </p>
         </div>
@@ -477,7 +477,7 @@ export function GoogleAds() {
 
       {/* No campaign */}
       {!campaign && (
-        <div className="bg-white rounded-xl border border-gray-100 px-8 py-16 text-center">
+        <div className="bg-white rounded-xl border border-gray-100 px-4 md:px-8 py-10 md:py-16 text-center">
           <p className="text-gray-400 font-medium">
             Nenhuma campanha ativa encontrada.
           </p>
@@ -554,7 +554,7 @@ export function GoogleAds() {
                         )}
                       </div>
                       {audiences.length === 0 ? (
-                        <div className="bg-white rounded-xl border border-dashed border-gray-200 px-8 py-10 text-center">
+                        <div className="bg-white rounded-xl border border-dashed border-gray-200 px-4 md:px-8 py-8 md:py-10 text-center">
                           <p className="text-gray-400 font-medium">Nenhum público nesta etapa.</p>
                           <p className="text-sm text-gray-300 mt-1">Clique em "Novo Público" para começar.</p>
                         </div>

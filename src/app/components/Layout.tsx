@@ -324,15 +324,11 @@ export function Layout() {
               })}
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-xs text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-full font-medium">
-              {campaign?.name ? `Campanha: ${campaign.name}` : "Confidencial · Cliente"}
-            </span>
-          </div>
+          {/* Elemento removido por solicitação do usuário */}
         </header>
 
         {/* Content */}
-        <main className="flex-1 px-8 py-8">
+        <main className="flex-1 px-4 py-4 md:px-8 md:py-8">
           <Outlet />
         </main>
       </div>
